@@ -49,7 +49,7 @@ character.gujian={
 				if(list.length){
 					event.target=list.randomGet();
 					event.target.popup('zuizhan');
-					game.log(get.translation(event.target)+'被追加为额外目标');
+					game.log(event.target,'被追加为额外目标');
 					trigger.targets.push(event.target);
 					player.draw();
 				}
@@ -80,7 +80,7 @@ character.gujian={
 		meiying:{
 			trigger:{global:'phaseBefore'},
 			filter:function(event,player){
-				return event.player!=player&&!player.isTurnedOver();
+				return event.player!=player&&!player.isTurnedOver()&&!player.storage.meiying;
 			},
 			check:function(event,player){
 				return ai.get.attitude(player,event.player)<0&&
@@ -184,10 +184,8 @@ character.gujian={
 			},
 			content:function(){
 				"step 0"
-				player.draw();
-				"step 1"
 				player.recover();
-				"step 2"
+				"step 1"
 				player.turnOver();
 			},
 			mod:{
@@ -472,6 +470,7 @@ character.gujian={
 					event.target=result.targets[0];
 					player.logSkill('xuelu',event.target,'fire');
 					event.num=Math.ceil((player.maxHp-player.hp)/2);
+					if(event.num>2) event.num=2;
 					player.discard(result.cards);
 				}
 				else{
@@ -513,6 +512,8 @@ character.gujian={
 		},
 		shahun:{
 			enable:'chooseToUse',
+			skillAnimation:true,
+			animationColor:'fire',
 			filter:function(event,player){
 				return !player.storage.shahun&&player.hp<=0;
 			},
@@ -626,7 +627,7 @@ character.gujian={
 			filter:function(event,player){
 				if(event.card.name!='sha') return false;
 				if(event.targets.length!=1) return false;
-				if(player.num('h',{type:'basic'})==player.num('h')) return false;
+				if(!player.num('he')) return false;
 				var target=event.targets[0];
 				for(var i=0;i<game.players.length;i++){
 					if(player!=game.players[i]&&target!=game.players[i]&&get.distance(target,game.players[i])<=1){
@@ -641,16 +642,13 @@ character.gujian={
 				for(var i=0;i<game.players.length;i++){
 					if(player!=game.players[i]&&trigger.targets[0]!=game.players[i]&&get.distance(trigger.targets[0],game.players[i])<=1){
 						event.targets.push(game.players[i]);
-						game.players[i].classList.add('selected');
 					}
 				}
 				var num=0;
 				for(var i=0;i<event.targets.length;i++){
 					num+=ai.get.effect(event.targets[i],{name:'sha'},player,player);
 				}
-				var next=player.chooseToDiscard(function(card){
-					return get.type(card)!='basic';
-				},'是否发动千军？');
+				var next=player.chooseToDiscard('是否对'+get.translation(event.targets)+'发动千军？','he');
 				next.logSkill=['qianjun',event.targets];
 				next.ai=function(card){
 					if(num<=0) return -1;
@@ -777,7 +775,8 @@ character.gujian={
 				}
 			},
 			ai:{
-				expose:0.2
+				expose:0.2,
+				threaten:1.3
 			}
 		},
 		yangming:{
@@ -806,7 +805,8 @@ character.gujian={
 						return 1;
 					}
 				},
-				order:6
+				order:6,
+				threaten:1.3
 			}
 		},
 		yangming2:{
@@ -885,6 +885,8 @@ character.gujian={
 		jiehuo:{
 			unique:true,
 			forbid:['infinity'],
+			skillAnimation:true,
+			animationColor:'fire',
 			init:function(player){
 				player.storage.jiehuo=false;
 			},
@@ -927,6 +929,7 @@ character.gujian={
 				content:'time'
 			},
 			ai:{
+				noh:true,
 				threaten:0.8,
 				effect:{
 					target:function(card,player,target){
@@ -1037,7 +1040,7 @@ character.gujian={
 		zuizhan:'醉斩',
 		zuizhan_info:'每当你使用一张杀，可以摸一张牌，然后此杀随机增加一个额外目标',
 		qianhuan:'千幻',
-		qianhuan_info:'回合结束后，若你已受伤，你可以回复一点体力并摸一张牌，然后将武将牌翻面。若你的武将牌背面朝上，你不能使用卡牌，也不能成为卡牌的目标',
+		qianhuan_info:'回合结束后，若你已受伤，你可以回复一点体力并将武将牌翻面。若你的武将牌背面朝上，你不能使用卡牌，也不能成为卡牌的目标',
 		fumo:'伏魔',
 		fumo_info:'每当你受到一次伤害，可以弃置两张颜色相同的手牌并对伤害来源造成一点雷电伤害',
 		fanyin:'梵音',
@@ -1049,7 +1052,7 @@ character.gujian={
 		yuehua:'月华',
 		yuehua_info:'每当你于回合外使用、打出或弃置红色牌，你可以摸一张牌',
 		xuelu:'血戮',
-		xuelu_info:'回合结束阶段，你可以弃置一张红色牌并对一名其他角色造成X点火焰伤害，X为你已损失体力值的一半，向上取整',
+		xuelu_info:'回合结束阶段，你可以弃置一张红色牌并对一名其他角色造成X点火焰伤害，X为你已损失体力值的一半，向上取整且不超过2',
 		fanshi:'反噬',
 		fanshi_info:'锁定技，若你于回合内造成过伤害，你于弃牌阶段结束时流失一点体力并摸一张牌',
 		shahun:'煞魂',
@@ -1069,7 +1072,7 @@ character.gujian={
 		jizhan:'疾战',
 		jizhan_info:'出牌阶段限一次，你可以将移动到任意一名角色的前一位，视为对其使用了一张杀',
 		qianjun:'千军',
-		qianjun_info:'每当你使用一张杀，你可以弃置一张非基本牌，令距离目标1以内的所有角色成为额外目标',
+		qianjun_info:'每当你使用一张杀，你可以弃置一张牌，令距离目标1以内的所有角色成为额外目标',
 		xuanning:'玄凝',
 		xuanning1:'玄凝',
 		xuanning2:'玄凝',

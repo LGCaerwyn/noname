@@ -6,6 +6,9 @@ mode.boss={
 				if(this!=game.boss){
 					this.storage.boss_chongzheng=0;
 				}
+				if(game.bossinfo.checkResult&&game.bossinfo.checkResult(this)===false){
+					return;
+				}
 				if(this==game.boss||game.players.length==1){
 					game.checkResult();
 				}
@@ -14,6 +17,32 @@ mode.boss={
 	},
 	game:{
 		reserveDead:true,
+		changeBoss:function(name){
+			if(game.additionaldead){
+				game.additionaldead.push(game.boss);
+			}
+			else{
+				game.additionaldead=[game.boss];
+			}
+			game.boss.delete();
+			game.dead.remove(game.boss);
+			var boss=ui.create.player().init(name);
+			game.addVideo('bossSwap',game.boss,boss.name);
+			if(game.me==game.boss){
+				boss.dataset.position=0;
+				game.swapControl(boss);
+			}
+			else{
+				boss.dataset.position=7;
+			}
+			game.players.push(boss.animate('zoominanim'));
+			game.arrangePlayers();
+			game.boss=boss;
+			ui.arena.appendChild(boss);
+			boss.directgain(get.cards(4));
+			boss.setIdentity('zhu');
+			boss.identity='zhu';
+		},
 		checkResult:function(){
 			if(game.boss==game.me){
 				game.over(game.boss.isAlive());
@@ -38,9 +67,17 @@ mode.boss={
 			var next=game.createEvent('game',false);
 			next.content=function(){
 				"step 0"
+				if(lib.db&&!_status.characterLoaded){
+					_status.waitingForCharacters=true;
+					game.pause();
+				}
+				"step 1"
+				if(lib.config.hiddenCharacterPack.contains('boss')){
+					game.loadPackage('character/boss');
+				}
+				"step 2"
 				var playback=localStorage.getItem(lib.configprefix+'playback');
 				if(playback){
-					ui.create.arena();
 					ui.create.me();
 					ui.arena.style.display='none';
 					ui.system.style.display='none';
@@ -69,7 +106,7 @@ mode.boss={
 				}
 				lib.init.css('layout/mode','boss');
 				game.delay(0.1);
-				"step 1"
+				"step 3"
 				var bosslist=ui.create.div('#bosslist.hidden');
 				event.bosslist=bosslist;
 				bosslist.ontouchmove = ui.click.touchScroll;
@@ -106,7 +143,7 @@ mode.boss={
 				var list=[];
 				for(var i in lib.character){
 					var info=lib.character[i];
-					if(info[4].contains('boss')){
+					if(info[4].contains('boss')&&!lib.config.banned.contains(i)){
 						var cfg=i+'_bossconfig';
 						if(get.config(cfg)==undefined){
 							game.saveConfig(cfg,true,true);
@@ -123,6 +160,9 @@ mode.boss={
 						player.node.hp.classList.add('text');
 						player.node.hp.dataset.condition='';
 						player.node.hp.innerHTML=info[2];
+						if(info[2]==Infinity){
+							player.node.hp.innerHTML='∞';
+						}
 						player.setIdentity(player.name);
 						player.node.identity.dataset.color=info[5];
 						bosslistlinks[cfg]=player;
@@ -138,17 +178,26 @@ mode.boss={
 						}
 					}
 				}
+				if(!list.length){
+					alert('挑战模式不可隐藏boss武将包，请在选项－其它中选择“重置隐藏扩展包”');
+					event.finish();
+					_status.over=true;
+					return;
+				}
 				if(!event.current){
 					event.current=bosslist.childNodes[1];
 					event.current.classList.add('highlight');
 				}
 				ui.create.div(bosslist);
 				lib.translate.boss_pangtong='涅槃凤雏';
-				ui.create.arena();
 				ui.create.cards();
 				game.finishCards();
 				ui.arena.dataset.number=8;
+				ui.control.style.transitionProperty='opacity';
 				ui.control.classList.add('bosslist');
+				setTimeout(function(){
+					ui.control.style.transitionProperty='';
+				},1000);
 
 				ui.window.appendChild(bosslist);
 
@@ -162,15 +211,33 @@ mode.boss={
 					bosslist.show();
 				},200);
 				game.me=ui.create.player();
-				game.chooseCharacter(function(target){
-					if(event.current){
-						event.current.classList.remove('highlight');
+				if(lib.config.continue_name_boss){
+					event.noslide=true;
+				}
+				else{
+					game.chooseCharacter(function(target){
+						if(event.current){
+							event.current.classList.remove('highlight');
+						}
+						event.current=target;
+						game.save('current',target.name);
+						target.classList.add('highlight');
+					});
+				}
+				if(lib.storage.test){
+					event.current.classList.remove('highlight');
+					if(event.current.nextSibling&&event.current.nextSibling.classList.contains('player')){
+						event.current=event.current.nextSibling;
 					}
-					event.current=target;
-					game.save('current',target.name);
-					target.classList.add('highlight');
-				});
-				"step 2"
+					else{
+						event.current=event.current.parentNode.childNodes[1];
+					}
+					lib.config.game_speed='vfast';
+					_status.auto=true;
+					ui.auto.classList.add('glow');
+					game.save('current',event.current.name);
+				}
+				"step 4"
 				game.bossinfo=lib.boss.global;
 				for(var i in lib.boss[event.current.name]){
 					game.bossinfo[i]=lib.boss[event.current.name][i];
@@ -184,14 +251,20 @@ mode.boss={
 				var boss=ui.create.player().init(event.current.name);
 				game.boss=boss;
 				boss.side=true;
-				boss.classList.add('bossplayer');
-				boss.classList.add('highlight');
-				boss.animate('bossing');
-				boss.node.hp.animate('start');
-				boss.style.left=(rect.left-ui.arena.offsetLeft)+'px';
-				boss.style.top=(rect.top-ui.arena.offsetTop)+'px';
+				if(!event.noslide){
+					// boss.classList.add('bossplayer');
+					// boss.classList.add('highlight');
+					boss.animate('bossing');
+					boss.node.hp.animate('start');
+					boss.style.left=(rect.left-ui.arena.offsetLeft)+'px';
+					boss.style.top=(rect.top-ui.arena.offsetTop)+'px';
+				}
 				boss.setIdentity('zhu');
 				boss.identity='zhu';
+				if(lib.config.continue_name_boss){
+					result=lib.config.continue_name_boss;
+					game.saveConfig('continue_name_boss');
+				}
 				for(var i=0;i<result.links.length;i++){
 					var player=ui.create.player(ui.arena).init(result.links[i]).animate('start');
 					player.setIdentity('cai');
@@ -225,7 +298,7 @@ mode.boss={
 					game.onSwapControl();
 					// ui.fakemebg.show();
 
-					lib.setPopped(ui.create.system('查看手牌',null,true),function(){
+					lib.setPopped(ui.create.system('手牌',null,true),function(){
 						var uiintro=ui.create.dialog('hidden');
 
 						var players=game.players.concat(game.dead);
@@ -234,7 +307,7 @@ mode.boss={
 								uiintro.add(get.translation(players[i]));
 								var cards=players[i].get('h');
 								if(cards.length){
-									uiintro.add(cards,true);
+									uiintro.addSmall(cards,true);
 								}
 								else{
 									uiintro.add('（无）');
@@ -243,7 +316,7 @@ mode.boss={
 						}
 
 						return uiintro;
-					});
+					},220);
 				}
 				lib.setPopped(ui.create.system('重整',null,true),function(){
 					var uiintro=ui.create.dialog('hidden');
@@ -277,6 +350,26 @@ mode.boss={
 
 					return uiintro;
 				},180);
+				ui.single_swap=ui.create.system('换人',function(){
+					var players=get.players(game.me);
+					players.remove(game.boss);
+					if(players.length>1){
+						if(ui.auto.classList.contains('hidden')){
+							game.me.popup('请稍后换人');
+							return;
+						}
+						if(_status.event.isMine()){
+							ui.click.auto();
+							setTimeout(function(){
+								ui.click.auto();
+							},500);
+						}
+						game.modeSwapPlayer(players[1]);
+					}
+				},true);
+				if(get.config('single_control')||game.me==game.boss){
+					ui.single_swap.style.display='none';
+				}
 
 				ui.arena.appendChild(boss);
 				ui.refresh(boss);
@@ -305,13 +398,15 @@ mode.boss={
 				_status.videoInited=true,
 				info.boss=(game.me==game.boss);
 				game.addVideo('init',null,info);
-
-				"step 3"
+				if(game.bossinfo.init){
+					game.bossinfo.init();
+				}
+				"step 5"
 				event.trigger('gameStart');
 				game.gameDraw(game.boss);
 				game.bossPhaseLoop();
 				setTimeout(function(){
-					ui.updateh(true);
+					ui.updatehl();
 				},200);
 			}
 		},
@@ -330,9 +425,9 @@ mode.boss={
 					if(player.maxHp>0){
 						if(player.hp<player.maxHp){
 							player.hp++;
-							game.log(get.translation(player)+'回复了一点体力');
+							game.log(player,'回复了一点体力');
 						}
-						else{
+						else if(player.num('h')<4){
 							var card=get.cards()[0];
 							var sort=lib.config.sort_card(card);
 							var position=sort>0?player.node.handcards1:player.node.handcards2;
@@ -340,11 +435,11 @@ mode.boss={
 							card.animate('start');
 							position.insertBefore(card,position.firstChild);
 							player.$draw();
-							game.log(get.translation(player)+'摸了一张牌');
+							game.log(player,'摸了一张牌');
 						}
 						player.update();
 						if(player.storage.boss_chongzheng>=game.bossinfo.chongzheng){
-							player.revive();
+							player.revive(player.hp);
 						}
 					}
 
@@ -353,6 +448,9 @@ mode.boss={
 					}
 				}
 				else{
+					if(player.identity=='zhu'&&game.boss!=player){
+						player=game.boss;
+					}
 					player.phase();
 				}
 				"step 1"
@@ -392,7 +490,7 @@ mode.boss={
 				ui.fakeme.style.backgroundImage=game.me.node.avatar.style.backgroundImage;
 				// ui.fakeme.style.backgroundSize='cover';
 			}
-			ui.updateh(true);
+			ui.updatehl();
 		},
 		modeSwapPlayer:function(player){
 			game.swapControl(player);
@@ -419,9 +517,11 @@ mode.boss={
 					if(lib.character[i][4].contains('minskin')) continue;
 					if(lib.character[i][4].contains('boss')) continue;
 					if(lib.character[i][4].contains('hiddenboss')) continue;
+					if(lib.character[i][4]&&lib.character[i][4].contains('forbidai')) continue;
 					if(lib.config.forbidai.contains(i)) continue;
 					if(lib.config.forbidall.contains(i)) continue;
 					if(lib.config.forbidboss.contains(i)) continue;
+					if(lib.config.banned.contains(i)) continue;
 					if(get.config('ban_weak')&&lib.config.forbidsingle.contains(i)) continue;
 					if(get.config('ban_weak')&&(lib.rank.c.contains(i)||lib.rank.d.contains(i))) continue;
 					if(get.config('ban_strong')&&(lib.rank.s.contains(i)||lib.rank.ap.contains(i))) continue;
@@ -429,9 +529,11 @@ mode.boss={
 				}
 				list.randomSort();
 				var dialog=ui.create.dialog('选择参战角色','hidden');
+				dialog.classList.add('fixed');
 				ui.window.appendChild(dialog);
 				dialog.classList.add('bosscharacter');
-				dialog.add('0/3');
+				dialog.classList.add('withbg');
+				// dialog.add('0/3');
 				dialog.add([list.slice(0,20),'character']);
 				dialog.noopen=true;
 
@@ -439,21 +541,26 @@ mode.boss={
 				next._triggered=null;
 				next.custom.replace.target=event.customreplacetarget;
 				next.selectButton=[3,3];
-				next.custom.add.button=function(){
-					if(ui.cheat2&&ui.cheat2.backup) return;
-					_status.event.dialog.content.childNodes[1].innerHTML=
-					ui.selected.buttons.length+'/3';
-				};
+				// next.custom.add.button=function(){
+				// 	if(ui.cheat2&&ui.cheat2.backup) return;
+				// 	_status.event.dialog.content.childNodes[1].innerHTML=
+				// 	ui.selected.buttons.length+'/3';
+				// };
 				event.changeDialog=function(){
 					if(ui.cheat2&&ui.cheat2.dialog==_status.event.dialog){
 						return;
+					}
+					if(game.changeCoin){
+						game.changeCoin(-3);
 					}
 					list.randomSort();
 					_status.event.dialog.close();
 					_status.event.dialog=ui.create.dialog('选择参战角色','hidden');
 					ui.window.appendChild(_status.event.dialog);
 					_status.event.dialog.classList.add('bosscharacter');
-					_status.event.dialog.add('0/3');
+					_status.event.dialog.classList.add('withbg');
+					_status.event.dialog.classList.add('fixed');
+					// _status.event.dialog.add('0/3');
 					_status.event.dialog.add([list.slice(0,20),'character']);
 					game.uncheck();
 					game.check();
@@ -465,10 +572,15 @@ mode.boss={
 				};
 				event.dialogxx=ui.create.characterDialog();
 				event.dialogxx.classList.add('bosscharacter');
+				event.dialogxx.classList.add('withbg');
+				event.dialogxx.classList.add('fixed');
 				ui.create.cheat2=function(){
 					_status.createControl=event.asboss;
 					ui.cheat2=ui.create.control('自由选将',function(){
 						if(this.dialog==_status.event.dialog){
+							if(game.changeCoin){
+								game.changeCoin(50);
+							}
 							this.dialog.close();
 							_status.event.dialog=this.backup;
 							ui.window.appendChild(this.backup);
@@ -484,6 +596,9 @@ mode.boss={
 							}
 						}
 						else{
+							if(game.changeCoin){
+								game.changeCoin(-10);
+							}
 							ui.cheat2x=ui.create.groupControl(_status.event.parent.dialogxx);
 							this.backup=_status.event.dialog;
 							_status.event.dialog.close();
@@ -545,12 +660,71 @@ mode.boss={
 						boss:false,
 						links:result.links
 					};
+					_status.coinCoeff=get.coinCoeff(result.links);
 				}
 			}
 			return next;
 		},
 	},
 	boss:{
+		boss_zhuoguiquxie:{
+			chongzheng:99,
+			checkResult:function(player){
+				if(player==game.boss&&game.boss.name!='boss_yecha'&&game.boss.name!='boss_luocha'){
+					return false;
+				}
+			},
+			init:function(){
+				_status.additionalReward=function(){
+					return 500;
+				}
+			}
+		},
+		boss_nianshou:{
+			chongzheng:99,
+			init:function(){
+				game.boss.node.action.classList.add('freecolor');
+				game.boss.node.action.style.opacity=1;
+				game.boss.node.action.style.letterSpacing='4px';
+				game.boss.node.action.style.marginRight=0;
+				game.boss.node.action.style.fontFamily='huangcao';
+				game.boss.node.action.innerHTML='';
+				_status.additionalReward=function(){
+					return Math.round(Math.pow(_status.damageCount,2.4))*2;
+				}
+				var time=360;
+				var interval=setInterval(function(){
+					if(_status.over){
+						clearInterval(interval);
+						return;
+					}
+					var sec=time%60;
+					if(sec<10){
+						sec='0'+sec;
+					}
+					game.boss.node.action.innerHTML=Math.floor(time/60)+':'+sec;
+					if(time<=0){
+						delete _status.additionalReward;
+						if(typeof _status.coin=='number'){
+							if(game.me==game.boss){
+								_status.coin+=Math.round(Math.pow(_status.damageCount,2.4));
+							}
+							else{
+								_status.coin+=Math.round(Math.pow(_status.damageCount,1.8));
+							}
+						}
+						game.forceOver(true);
+						clearInterval(interval);
+					}
+					time--;
+				},1000);
+				_status.damageCount=0;
+				ui.damageCount=ui.create.system('伤害: 0',null,true);
+			}
+		},
+		boss_nianshou_heti:{
+			chongzheng:99,
+		},
 		boss_zhangjiao:{
 			// loopType:2,
 		},
@@ -585,7 +759,6 @@ mode.boss={
 		},
 	},
 	skill:{
-
 		_bossswap:{
 			trigger:{player:['phaseBegin','chooseToUseBegin','chooseToRespondBegin','chooseToDiscardBegin','chooseToCompareBegin',
 			'chooseButtonBegin','chooseCardBegin','chooseTargetBegin','chooseCardTargetBegin','chooseControlBegin',
@@ -594,6 +767,7 @@ mode.boss={
 			priority:100,
 			popup:false,
 			filter:function(event,player){
+				if(!get.config('single_control')) return false;
 				if(event.autochoose&&event.autochoose()) return false;
 				return player.isUnderControl();
 			},

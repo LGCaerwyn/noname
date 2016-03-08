@@ -218,6 +218,7 @@ character.zhuogui={
             }
         },
         qiangzheng:{
+            audio:2,
             trigger:{player:'phaseEnd'},
             direct:true,
             forced:true,
@@ -241,6 +242,9 @@ character.zhuogui={
                     result.targets[0].$give(1,player);
                     game.delay();
                 }
+            },
+            ai:{
+                threaten:1.7
             }
         },
         suoling:{

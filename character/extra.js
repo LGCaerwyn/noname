@@ -10,6 +10,91 @@ character.extra={
 		shen_lvbu:['male','qun',5,['baonu','wuqian','shenfen']],
 	},
 	skill:{
+		qinyin:{
+			audio:2,
+			trigger:{player:'phaseDiscardEnd'},
+			direct:true,
+			filter:function(event,player){
+				return event.cards&&event.cards.length>1
+			},
+			content:function(){
+				"step 0"
+				if(typeof event.count!='number'){
+					// event.count=trigger.cards.length-1;
+					event.count=1;
+				}
+				var recover=0,lose=0;
+				for(var i=0;i<game.players.length;i++){
+					if(!game.players[i].isOut()){
+						if(game.players[i].hp<game.players[i].maxHp){
+							if(ai.get.attitude(player,game.players[i])>0){
+								if(game.players[i].hp<2){
+									lose--;
+									recover+=0.5;
+								}
+								lose--;
+								recover++;
+							}
+							else if(ai.get.attitude(player,game.players[i])<0){
+								if(game.players[i].hp<2){
+									lose++;
+									recover-=0.5;
+								}
+								lose++;
+								recover--;
+							}
+						}
+						else{
+							if(ai.get.attitude(player,game.players[i])>0){
+								lose--;
+							}
+							else if(ai.get.attitude(player,game.players[i])<0){
+								lose++;
+							}
+						}
+					}
+				}
+				var prompt='是否发动【琴音】（剩余'+get.cnNumber(event.count)+'次）';
+				player.chooseControl('失去体力','回复体力','cancel',
+				ui.create.dialog('是否发动【琴音】？','hidden')).ai=function(){
+					// console.log(lose,recover);
+					if(lose>recover&&lose>0) return 0;
+					if(lose<recover&&recover>0) return 1;
+					return 2;
+				}
+				"step 1"
+				if(result.bool==false||result.control=='cancel'){
+					event.finish();
+				}
+				else{
+					player.logSkill('qinyin');
+					event.bool=(result.control=='回复体力');
+					event.num=0;
+					event.players=game.players.slice(0);
+				}
+				"step 2"
+				if(event.num<event.players.length){
+					var target=event.players[event.num];
+					if(event.bool){
+						target.recover();
+					}
+					else{
+						target.loseHp();
+					}
+					event.num++;
+					event.redo();
+				}
+				"step 3"
+				if(event.count>1){
+					event.count--;
+					event.goto(0);
+				}
+			},
+			ai:{
+				expose:0.1,
+				threaten:2
+			}
+		},
 		lianpo:{
 			audio:true,
 			trigger:{source:'dieAfter'},
@@ -58,6 +143,8 @@ character.extra={
 			init:function(player){
 				player.storage.shenfen=false;
 			},
+			skillAnimation:true,
+			animationColor:'metal',
 			mark:true,
 			content:function(){
 				"step 0"
@@ -170,13 +257,11 @@ character.extra={
 					},
 					player:function(card,player){
 						if(_status.currentPhase!=player) return;
-						if(card.name=='wuzhong'||card.name=='yiyi'||
-							card.name=='yuanjiao'||card.name=='shunshou') return;
+						if(get.type(card)=='basic'||get.type(card,'trick')=='trick') return;
 						if(player.hp<=2) return;
 						if(!player.skills.contains('jilue')||player.storage.renjie==0){
 							return [0,0,0,0];
 						}
-
 					}
 				}
 			}
@@ -194,6 +279,7 @@ character.extra={
 			}
 		},
 		sbaiyin:{
+			skillAnimation:'epic',
 			trigger:{player:'phaseBegin'},
 			forced:true,
 			unique:true,
@@ -223,7 +309,7 @@ character.extra={
 				player.chooseCard('是否弃置一枚“忍”，并发动【鬼才】？').ai=function(card){
 					var trigger=_status.event.parent._trigger;
 					var player=_status.event.player;
-					var result=trigger.judge(card)-trigger.judge(trigger.player.judging);
+					var result=trigger.judge(card)-trigger.judge(trigger.player.judging[0]);
 					var attitude=ai.get.attitude(player,trigger.player);
 					if(attitude==0||result==0) return 0;
 					if(attitude>0){
@@ -245,14 +331,14 @@ character.extra={
 					player.logSkill('jilue_guicai');
 					player.storage.renjie--;
 					player.updateMarks();
-					if(trigger.player.judging.clone){
-						trigger.player.judging.clone.delete();
-						game.addVideo('deletenode',player,get.cardsInfo([trigger.player.judging.clone]));
+					if(trigger.player.judging[0].clone){
+						trigger.player.judging[0].clone.delete();
+						game.addVideo('deletenode',player,get.cardsInfo([trigger.player.judging[0].clone]));
 					}
-					ui.discardPile.appendChild(trigger.player.judging);
-					trigger.player.judging=result.cards[0];
+					ui.discardPile.appendChild(trigger.player.judging[0]);
+					trigger.player.judging[0]=result.cards[0];
 					trigger.position.appendChild(result.cards[0]);
-					game.log(get.translation(trigger.player)+'的判定牌改为'+get.translation(result.cards[0]));
+					game.log(trigger.player,'的判定牌改为',result.cards[0]);
 					game.delay(2);
 				}
 			},
@@ -431,7 +517,9 @@ character.extra={
 			trigger:{global:'dieAfter'},
 			forced:true,
 			content:function(){
-				player.loseHp(player.hp);
+				if(player.hp<Infinity){
+					player.loseHp(player.hp);
+				}
 				player.removeSkill('wuhun2');
 			}
 		},
@@ -503,7 +591,7 @@ character.extra={
 			}
 		},
 		qixing:{
-			audio:3,
+			audio:2,
 			unique:true,
 			trigger:{global:'gameDrawAfter',player:'phaseBegin'},
 			forced:true,
@@ -625,7 +713,7 @@ character.extra={
 						result.targets[i].popup('dawu');
 					}
 					player.logSkill('dawu',result.targets,'thunder');
-					game.log(get.translation(player)+'对'+get.translation(result.targets)+'发动了大雾')
+					game.log(player,'对',result.targets,'发动了大雾')
 					player.chooseCardButton('弃置'+get.cnNumber(length)+'枚星',length,player.storage.qixing,true);
 				}
 				else{
@@ -749,6 +837,8 @@ character.extra={
 			unique:true,
 			enable:'phaseUse',
 			audio:3,
+			animationColor:'fire',
+			skillAnimation:'legend',
 			filter:function(event,player){
 				return !player.storage.yeyan;
 			},
@@ -1046,7 +1136,7 @@ character.extra={
 				if(event.insert){
 					event.card.fix();
 					ui.cardPile.insertBefore(event.card,ui.cardPile.firstChild);
-					game.log(get.translation(player)+'将'+get.translation(event.card)+'置于牌堆顶');
+					game.log(player,'将',event.card,'置于牌堆顶');
 					game.delay(2);
 				}
 				"step 3"
@@ -1128,6 +1218,7 @@ character.extra={
 		dawu_info:'回合结束阶段，你可以弃掉X枚“星”指定X名角色：直到你的下回合开始，防止他们受到的除雷电伤害外的一切伤害。',
 		kuangfeng:'狂风',
 		kuangfeng2:'狂风',
+		kuangfeng2_bg:'风',
 		// kuangfeng2_info:'已获得狂风标记',
 		kuangfeng3:'狂风',
 		kuangfeng_info:'回合结束阶段，你可以弃掉1枚“星”指定一名角色：直到你的下回合开始，该角色每次受到的火焰伤害+1。',
@@ -1136,6 +1227,6 @@ character.extra={
 		shenfen:'神愤',
 		shenfen_info:'限定技，出牌阶段，你可以弃置6枚暴怒标记，对场上所有其他角色造成一点伤害，然后令其弃置4张牌',
 		wuqian:'无前',
-		wuqian_info:'出牌阶段，你可以弃置两枚暴怒标记并获得技能【无双】',
+		wuqian_info:'出牌阶段，你可以弃置两枚暴怒标记并获得技能【无双】直到回合结束',
 	},
 }

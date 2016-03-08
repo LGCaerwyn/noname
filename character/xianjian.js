@@ -27,7 +27,7 @@ character.xianjian={
 		pal_hanlingsha:['female','shu',3,['tannang','tuoqiao']],
 		pal_liumengli:['female','wei',3,['tianxian','runxin','zhimeng']],
 		pal_murongziying:['male','wei',4,['xuanning','poyun','qianfang']],
-		pal_xuanxiao:['male','wei',4,['xuanyan','ningbin','fenxin']],
+		pal_xuanxiao:['male','wei',4,['xuanyan','ningbin','xfenxin']],
 
 	},
 	skill:{
@@ -50,7 +50,7 @@ character.xianjian={
 			trigger:{source:'damageBegin'},
 			forced:true,
 			filter:function(event){
-				return event.nature=='fire';
+				return event.nature=='fire'&&event.notLink();
 			},
 			content:function(){
 				trigger.num++;
@@ -80,14 +80,14 @@ character.xianjian={
 				effect:{
 					target:function(card,player,target){
 						if(get.tag(card,'thunderDamage')){
-							if(target.hp<=1||!target.skills.contains('fenxin')) return [0,0];
+							if(target.hp<=1||!target.skills.contains('xfenxin')) return [0,0];
 							return [0,1.5];
 						}
 					}
 				}
 			},
 		},
-		fenxin:{
+		xfenxin:{
 			trigger:{player:'changeHp'},
 			forced:true,
 			filter:function(event){
@@ -106,9 +106,9 @@ character.xianjian={
 					}
 				}
 			},
-			group:'fenxin2'
+			group:'xfenxin2'
 		},
-		fenxin2:{
+		xfenxin2:{
 			trigger:{source:'dieAfter'},
 			forced:true,
 			content:function(){
@@ -368,9 +368,9 @@ character.xianjian={
 					player.$throw(result.links);
 					ui.discardPile.appendChild(result.links[0]);
 					trigger.player.recover();
-					if(trigger.player!=player){
-						trigger.player.draw();
-					}
+					// if(trigger.player!=player){
+					// 	trigger.player.draw();
+					// }
 					player.logSkill('shuiyun5',trigger.player,'thunder');
 					game.addVideo('storage',player,['shuiyun',get.cardsInfo(player.storage.shuiyun),'cards']);
 				}
@@ -463,12 +463,12 @@ character.xianjian={
 				if(result.bool){
 					var cards=player.get('hej');
 					var target=result.targets[0];
-					if(player.storage.shuiyun&&player.storage.shuiyun.length){
-						target.gainMaxHp();
-						target.recover(player.storage.shuiyun.length);
-						cards=cards.concat(player.storage.shuiyun);
-						player.storage.shuiyun.length=0;
-					}
+					// if(player.storage.shuiyun&&player.storage.shuiyun.length){
+					// 	target.gainMaxHp();
+					// 	target.recover(player.storage.shuiyun.length);
+					// 	cards=cards.concat(player.storage.shuiyun);
+					// 	player.storage.shuiyun.length=0;
+					// }
 					player.$give(cards,target);
 					target.gain(cards);
 					target.addSkill('changnian2');
@@ -560,7 +560,7 @@ character.xianjian={
 					var card=cards.randomGet();
 					player.gain(card);
 					player.$gain2(card);
-					game.log(get.translation(player)+'获得了'+get.translation(card));
+					game.log(player,'获得了',card);
 					player.addTempSkill('jubao2','phaseAfter');
 				}
 			},
@@ -816,14 +816,14 @@ character.xianjian={
 			direct:true,
 			content:function(){
 				"step 0"
-				player.discardPlayerCard(trigger.player,'he','是否发动【破云】',[1,2]);
+				player.discardPlayerCard(trigger.player,'he','是否发动【破云】',[1,2]).logSkill=['poyun',trigger.player];
 				"step 1"
 				if(result.bool){
 					player.storage.xuanning--;
 					if(!player.storage.xuanning){
 						player.unmarkSkill('xuanning');
 					}
-					player.logSkill('poyun',trigger.player);
+					player.syncStorage('xuanning');
 				}
 			},
 			ai:{
@@ -951,7 +951,7 @@ character.xianjian={
 				if(cards.length){
 					player.gain(cards,'draw');
 					player.logSkill('longxi');
-					game.log(get.translation(player)+'获得了'+get.cnNumber(cards.length)+'张牌');
+					game.log(player,'获得了'+get.cnNumber(cards.length)+'张牌');
 				}
 			},
 			ai:{
@@ -1081,7 +1081,7 @@ character.xianjian={
 				}
 				"step 1"
 				if(result.bool){
-					player.logSkill('runxin');
+					player.logSkill('runxin',result.targets);
 					result.targets[0].recover();
 				}
 			},
@@ -1173,7 +1173,7 @@ character.xianjian={
 							ui.discardPile.appendChild(player.storage.zhimeng2);
 						}
 						else{
-							game.log(get.translation(player)+'发动织梦，获得了'+get.translation(player.storage.zhimeng2));
+							game.log(player,'发动织梦，获得了',player.storage.zhimeng2);
 							player.gain(player.storage.zhimeng2,'gain2');
 							player.popup('zhimeng');
 						}
@@ -1366,9 +1366,9 @@ character.xianjian={
 		xuanyan_info:'锁定技，你的火属性伤害+1；你造成火属性伤害后流失1点体力',
 		ningbin:'凝冰',
 		ningbin_info:'锁定技，每当你受到1次雷属性伤害，你回复1点体力',
-		fenxin:'焚心',
-		fenxin2:'焚心',
-		fenxin_info:'锁定技，每当你的体力值发生改变，你摸等量的牌；每当你杀死一名角色，你增加一点体力上限并回复一点体力',
+		xfenxin:'焚心',
+		xfenxin2:'焚心',
+		xfenxin_info:'锁定技，每当你的体力值发生改变，你摸等量的牌；每当你杀死一名角色，你增加一点体力上限并回复一点体力',
 		luanjian:'乱剑',
 		luanjian_info:'你可以将两张杀当杀使用，此杀无视距离和防具，且可以指定任意名目标',
 		tianfu:'天符',
@@ -1380,12 +1380,12 @@ character.xianjian={
 		shuiyun2:'水蕴',
 		shuiyun5:'水蕴',
 		shuiyun3:'水蕴',
-		shuiyun_info:'回合结束阶段，你可以将一张与武将牌上的牌类别均不相同的手牌置于武将牌上称为“蕴”；任意一名角色进入濒死状态时，你可以弃置一张“蕴”令其回复1点体力并摸一张牌',
+		shuiyun_info:'回合结束阶段，你可以将一张与武将牌上的牌类别均不相同的手牌置于武将牌上称为“蕴”；任意一名角色进入濒死状态时，你可以弃置一张“蕴”令其回复1点体力',
 		wangyou:'忘忧',
 		wangyou_info:'其他角色的回合结束阶段，你可以弃置一张牌，令此回合内受过伤害的所有角色各摸一张牌',
 		changnian:'长念',
 		changnian2:'追思',
-		changnian_info:'你死亡时，可以将所有牌交给一名其他角色，令其获得技能【追思】；若你有至少1张“蕴”，该角色增加1点体力上限回复X点体力，X为“蕴”的个数',
+		changnian_info:'你死亡时，可以将所有牌交给一名其他角色，令其获得技能【追思】',
 		sajin:'洒金',
 		sajin_info:'出牌阶段限一次，你可以弃置一张手牌并指定任意名角色进行判定，若判定颜色与你弃置的牌相同，该角色回复一点体力',
 		jubao:'聚宝',

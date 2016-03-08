@@ -56,8 +56,10 @@
         }
     }
     window.resetGameTimeout=setTimeout(function(){
+        if(window.inSplash) return;
         if(confirm('游戏似乎未正常载入，是否重置游戏？')){
             localStorage.clear();
+            if(indexedDB) indexedDB.deleteDatabase('noname_0.9_data');
             window.location.reload();
         }
     },5000);

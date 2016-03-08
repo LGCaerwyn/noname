@@ -12,6 +12,9 @@ play.character={
 		for(i in lib.character){
 			if(lib.config.forbidai.contains(i)) continue;
 			if(lib.config.forbidall.contains(i)) continue;
+			if(lib.config.banned.contains(i)) continue;
+			if(lib.character[i][4]&&lib.character[i][4].contains('forbidai')) continue;
+			if(lib.character[i][4]&&lib.character[i][4].contains('boss')) continue;
 			if(!get.config('double_character')&&get.config('ban_weak')&&lib.config.forbidsingle.contains(i)) continue;
 			if(get.config('double_character')&&lib.config.forbiddouble.contains(i)) continue;
 			list.push(i);
@@ -50,10 +53,11 @@ play.character={
 					target.$gain2(card);
 					var skills=lib.character[name][3];
 					var list=[];
+					var targetskills=target.get('s');
 					for(var j=0;j<skills.length;j++){
 						if(lib.translate[skills[j]+'_info']&&lib.skill[skills[j]]&&
 							!lib.skill[skills[j]].unique&&
-							!target.skills.contains(skills[j])){
+							!targetskills.contains(skills[j])){
 							list.push(skills[j]);
 						}
 					}
@@ -61,7 +65,7 @@ play.character={
 					if(list.length){
 						var skill=list.randomGet();
 						target.popup(skill);
-						game.log(get.translation(target)+'获得技能'+get.translation(skill));
+						game.log(target,'获得技能','【'+get.translation(skill)+'】');
 						target.addSkill(skill);
 						target.skills.remove(skill);
 						target.additionalSkills.charactercard=skill;

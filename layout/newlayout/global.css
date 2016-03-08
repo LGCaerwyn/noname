@@ -54,7 +54,7 @@
 .player .actcount.hp{
 	top: 18px;
 	left: 15px;
-	width: 130px;
+	width: 120px;
 	bottom: auto;
 	right: auto;
 	text-align: left;
@@ -75,6 +75,9 @@
 }
 .player.fullskin2 .avatar{
 	border-radius:8px 0 0 8px;
+}
+#window.reduce_radius .player.fullskin2 .avatar{
+	border-radius:4px 0 0 4px;
 }
 .player.fullskin2 .avatar2{
 	top:10px;
@@ -231,9 +234,13 @@
 .player.linked{
 	transform:rotate(-90deg);
 }
-.player.linked.target{
-	transform:rotate(-93deg);
-}
+#arena[data-target_shake='shake'] .linked.target{transform: rotate(-93deg);}
+#arena[data-target_shake='shake'] .linked.target2{transform: rotate(-87deg);}
+
+#arena[data-target_shake='zoom'] .linked.target,
+#arena[data-target_shake='zoom'] .linked.target2{transform: scale(1.03) rotate(-90deg);}
+
+
 .player.acted.linked .identity{
 	transform:rotate(270deg);
 }
@@ -241,6 +248,14 @@
 .linked>.avatar2{top:73px;}
 .linked>.identity{top: -5px;}
 .linked>.count{right: auto;}
+
+.player.linked>.name{
+	transform-origin: top center;
+	transform: rotate(90deg) translate(132px,-96px);
+}
+.player.linked>.name.name2{
+	transform: rotate(90deg) translate(110px,-31px);
+}
 /*--------位置(n人)------*/
 
 /*--------位置(8人)------*/
@@ -348,9 +363,10 @@
 	bottom:185px;
 	height:calc(100% - 385px);
 	z-index:4;
-	transition-property:opacity,background,box-shadow;
-	animation: dialog_start2 0.5s;
-	-webkit-animation: dialog_start2 0.5s;
+}
+.dialog.nobutton{
+	bottom:auto !important;
+	top:200px !important;
 }
 #arena.stone .dialog{
 	width: calc(90% - 440px);
@@ -372,7 +388,6 @@
 .dialog.withbg{
 	background: rgba(0,0,0,0.2);
 	box-shadow: rgba(0, 0, 0, 0.3) 0 0 0 1px;
-	border-radius:8px;
 	min-height:240px;
 }
 .dialog>.bar{

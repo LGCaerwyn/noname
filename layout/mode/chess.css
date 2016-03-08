@@ -19,6 +19,7 @@
     top:0;
     overflow:scroll;
     text-align:center;
+    position: absolute;
 }
 #chess{
     margin-top:36px;
@@ -59,6 +60,9 @@
     background: rgba(0,0,0,0.2);
 	box-shadow: rgba(0, 0, 0, 0.3) 0 0 0 1px;
 	border-radius:8px;
+}
+#window.reduce_radius>.dialog{
+    border-radius:4px;
 }
 #arena>.dialog.slim:not(.center){
     top:40px;
@@ -138,6 +142,10 @@
 	box-shadow: rgba(0, 0, 0, 0.3) 0 0 0 1px;
 	border-radius:8px;
 }
+#window.reduce_radius .player.playergrid,
+#window.reduce_radius .player.obstacle{
+    border-radius:4px;
+}
 .player.playerblank{
     background: none;
 }
@@ -204,7 +212,8 @@
     font-family: 'xinwei';
     font-size: 20px;
     top: 66px;
-    left: 5px;
+    right: 5px;
+    left:auto;
 }
 .dialog .buttons>.button.character.squarebutton{
     height:90px;
@@ -219,4 +228,7 @@
 }
 .dialog .buttons>.button.character.squarebutton>.name{
     top:8px;
+}
+br.finish_game{
+    display: none;
 }

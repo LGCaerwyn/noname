@@ -1,6 +1,30 @@
 'use strict';
 mode.guozhan={
 	game:{
+		addRecord:function(bool){
+			if(typeof bool=='boolean'){
+				var data=lib.config.gameRecord.guozhan.data;
+				var identity=game.me.identity;
+				if(!data[identity]){
+					data[identity]=[0,0];
+				}
+				if(bool){
+					data[identity][0]++;
+				}
+				else{
+					data[identity][1]++;
+				}
+				var list=['wei','shu','wu','qun','ye'];
+				var str='';
+				for(var i=0;i<list.length;i++){
+					if(data[list[i]]){
+						str+=lib.translate[list[i]+'2']+'：'+data[list[i]][0]+'胜'+' '+data[list[i]][1]+'负<br>';
+					}
+				}
+				lib.config.gameRecord.guozhan.str=str;
+				game.saveConfig('gameRecord',lib.config.gameRecord);
+			}
+		},
 		getIdentityList:function(player){
 			if(!player.isUnseen()) return;
 			if(player==game.me) return;
@@ -49,9 +73,13 @@ mode.guozhan={
 			var next=game.createEvent('game',false);
 			next.content=function(){
 				"step 0"
+				if(lib.db&&!_status.characterLoaded){
+					_status.waitingForCharacters=true;
+					game.pause();
+				}
+				"step 1"
 				var playback=localStorage.getItem(lib.configprefix+'playback');
 				if(playback){
-					ui.create.arena();
 					ui.create.me();
 					ui.arena.style.display='none';
 					ui.system.style.display='none';
@@ -74,9 +102,10 @@ mode.guozhan={
 					game.delay();
 					game.showChangeLog();
 				}
-				"step 1"
+				"step 2"
 				if(lib.storage.test){
 					lib.config.game_speed='vfast';
+					lib.config.low_performance=true;
 					_status.auto=true;
 					ui.auto.classList.add('glow');
 				}
@@ -85,7 +114,10 @@ mode.guozhan={
 					game.players[i].node.name2.hide();
 				}
 				game.chooseCharacter();
-				"step 2"
+				"step 3"
+				if(ui.coin){
+					_status.coinCoeff=get.coinCoeff([game.me.name1,game.me.name2]);
+				}
 				if(lib.storage.test){
 					var str='';
 					for(var i=0;i<game.players.length;i++){
@@ -172,16 +204,24 @@ mode.guozhan={
 					game.over('战斗胜利');
 				}
 			}
+			game.showIdentity();
 		},
 		chooseCharacter:function(){
 			var next=game.createEvent('chooseCharacter',false);
 			next.showConfig=true;
 			next.addPlayer=true;
-			next.ai=function(player,list){
+			next.ai=function(player,list,back){
 				for(var i=0;i<list.length-1;i++){
 					for(var j=i+1;j<list.length;j++){
 						if(lib.character[list[i]][1]==lib.character[list[j]][1]){
 							player.init(list[i],list[j],false);
+							if(back){
+								list.remove(player.name);
+								list.remove(player.name2);
+								for(var i=0;i<list.length;i++){
+									back.push(list[i]);
+								}
+							}
 							return;
 						}
 					}
@@ -206,6 +246,7 @@ mode.guozhan={
 						td.link=i-1;
 						td.addEventListener(lib.config.touchscreen?'touchend':'click',function(){
 							if(_status.dragged) return;
+							if(_status.justdragged) return;
 							if(_status.cheat_seat){
 								_status.cheat_seat.classList.remove('thundertext');
 								if(_status.cheat_seat==this){
@@ -240,12 +281,19 @@ mode.guozhan={
 				event.addSetting=addSetting;
 				event.removeSetting=removeSetting;
 
+				var chosen=lib.config.continue_name||[];
+				game.saveConfig('continue_name');
+				event.chosen=chosen;
+
 				var i;
 				event.list=[];
 				for(i in lib.character){
+					if(chosen.contains(i)) continue;
+					if(lib.character[i][4]&&lib.character[i][4].contains('forbidai')) continue;
 					if(lib.config.forbidai.contains(i)) continue;
 					if(lib.config.forbidall.contains(i)) continue;
 					if(lib.config.forbiddouble.contains(i)) continue;
+					if(lib.config.banned.contains(i)) continue;
 					if(get.config('ban_strong')&&(lib.rank.s.contains(i)||lib.rank.ap.contains(i))) continue;
 					if(lib.character[i][2]==3||lib.character[i][2]==4||lib.character[i][2]==5)
 					event.list.push(i);
@@ -255,8 +303,11 @@ mode.guozhan={
 				if(_status.auto){
 					event.ai(game.me,list);
 				}
+				else if(chosen.length){
+					game.me.init(chosen[0],chosen[1],false);
+				}
 				else{
-					var dialog=ui.create.dialog('选择角色',[list,'character']);
+					var dialog=ui.create.dialog('选择角色','hidden',[list,'character']);
 					if(get.config('change_identity')){
 						addSetting(dialog);
 					}
@@ -285,6 +336,9 @@ mode.guozhan={
 					ui.create.cheat2=function(){
 						ui.cheat2=ui.create.control('自由选将',function(){
 							if(this.dialog==_status.event.dialog){
+								if(game.changeCoin){
+									game.changeCoin(50);
+								}
 								this.dialog.close();
 								_status.event.dialog=this.backup;
 								this.backup.open();
@@ -300,6 +354,9 @@ mode.guozhan={
 								}
 							}
 							else{
+								if(game.changeCoin){
+									game.changeCoin(-10);
+								}
 								ui.cheat2x=ui.create.groupControl(_status.event.parent.dialogxx);
 								this.backup=_status.event.dialog;
 								_status.event.dialog.close();
@@ -319,6 +376,9 @@ mode.guozhan={
 						ui.cheat=ui.create.control('更换',function(){
 							if(ui.cheat2&&ui.cheat2.dialog==_status.event.dialog){
 								return;
+							}
+							if(game.changeCoin){
+								game.changeCoin(-3);
 							}
 							event.list=event.list.concat(list);
 							event.list.randomSort();
@@ -359,7 +419,7 @@ mode.guozhan={
 				event.list.remove(game.me.name2);
 				for(var i=0;i<game.players.length;i++){
 					if(game.players[i]!=game.me){
-						event.ai(game.players[i],event.list.splice(0,parseInt(get.config('choice_num'))))
+						event.ai(game.players[i],event.list.splice(0,parseInt(get.config('choice_num'))),event.list);
 					}
 				}
 				for(var i=0;i<game.players.length;i++){
@@ -369,7 +429,16 @@ mode.guozhan={
 						game.players[i].node.identity.firstChild.innerHTML='猜';
 						game.players[i].node.identity.dataset.color='unknown';
 					}
-					game.players[i].hiddenSkills=lib.character[game.players[i].name][3].concat(lib.character[game.players[i].name2][3]);
+					game.players[i].hiddenSkills=lib.character[game.players[i].name][3].slice(0);
+					var hiddenSkills2=lib.character[game.players[i].name2][3];
+					for(var j=0;j<hiddenSkills2.length;j++){
+						game.players[i].hiddenSkills.add(hiddenSkills2[j]);
+					}
+					for(var j=0;j<game.players[i].hiddenSkills.length;j++){
+						if(!lib.skill[game.players[i].hiddenSkills[j]]){
+							game.players[i].hiddenSkills.splice(j--,1);
+						}
+					}
 					game.players[i].group='unknown';
 					game.players[i].sex='unknown';
 					game.players[i].name1=game.players[i].name;
@@ -419,6 +488,11 @@ mode.guozhan={
 	translate:{
 		change_identity_config:'自由选择座位',
 		ye:'野',
+		ye2:'野心家',
+		wei2:'魏国',
+		shu2:'蜀国',
+		wu2:'吴国',
+		qun2:'群雄',
 		unknown:'无名氏',
 		unknown0:'一号位',
 		unknown1:'二号位',
@@ -485,25 +559,34 @@ mode.guozhan={
 					// this.node.identity.dataset.color=this.identity;
 					this.setIdentity(this.identity);
 					this.ai.shown=1;
+
+					if(_status.clickingidentity&&_status.clickingidentity[0]==this){
+						for(var i=0;i<_status.clickingidentity[1].length;i++){
+							_status.clickingidentity[1][i].delete();
+							_status.clickingidentity[1][i].style.transform='';
+						}
+						delete _status.clickingidentity;
+					}
+					game.addVideo('setIdentity',this,this.identity);
 				}
 				var skills;
 				switch(num){
 					case 0:
-					if(log!==false) game.log(get.translation(this)+'展示了主将'+get.translation(this.name1));
+					if(log!==false) game.log(this,'展示了主将'+get.translation(this.name1));
 					this.name=this.name1;
 					skills=lib.character[this.name][3];
 					this.sex=lib.character[this.name][0];
 					this.classList.remove('unseen');
 					break;
 					case 1:
-					if(log!==false) game.log(get.translation(this)+'展示了副将'+get.translation(this.name2));
+					if(log!==false) game.log(this,'展示了副将'+get.translation(this.name2));
 					skills=lib.character[this.name2][3];
 					if(this.sex=='unknown') this.sex=lib.character[this.name2][0];
 					if(this.name.indexOf('unknown')==0) this.name=this.name2;
 					this.classList.remove('unseen2');
 					break;
 					case 2:
-					if(log!==false) game.log(get.translation(this)+'展示了主将'+get.translation(this.name1)+'、副将'+get.translation(this.name2));
+					if(log!==false) game.log(this,'展示了主将'+get.translation(this.name1)+'、副将'+get.translation(this.name2));
 					this.name=this.name1;
 					skills=lib.character[this.name][3].concat(lib.character[this.name2][3]);
 					this.sex=lib.character[this.name][0];
@@ -514,8 +597,8 @@ mode.guozhan={
 				var initdraw=parseInt(get.config('initshow_draw'));
 				if(!_status.initshown&&initdraw&&this.isAlive()&&get.config('guozhan_mode')!='mingjiang'){
 					this.popup('首亮');
-					game.log(get.translation(this)+'首先明置武将，得到奖励');
-					game.log(get.translation(this)+'摸了'+get.cnNumber(initdraw)+'张牌');
+					game.log(this,'首先明置武将，得到奖励');
+					game.log(this,'摸了'+get.cnNumber(initdraw)+'张牌');
 					this.draw(initdraw).log=false;
 					_status.initshown=true;
 				}
@@ -533,7 +616,7 @@ mode.guozhan={
 						next.content=function(){
 							"step 0"
 							player.popup('珠联璧合');
-							game.log(get.translation(player)+'发动了【珠联璧合】');
+							game.log(player,'发动了【珠联璧合】');
 							if(player.hp==player.maxHp){
 								player.draw(2);
 								event.finish();
@@ -727,23 +810,55 @@ mode.guozhan={
 					event.finish();
 				}
 				else{
-					event.name=(game.expandSkills(lib.character[player.name1][3]).contains(trigger.skill))?
-					player.name1:player.name2;
-					var info=get.info(trigger.skill);
-					var yes=!info.check||info.check(trigger._trigger,player);
-					player.chooseBool('是否明置'+get.translation(event.name)+'以发动'+get.translation(trigger.skill)+'？').ai=function(){
-						return yes;
-					};
+					var bool1=(game.expandSkills(lib.character[player.name1][3]).contains(trigger.skill));
+					var bool2=(game.expandSkills(lib.character[player.name2][3]).contains(trigger.skill));
+					if(bool1&&bool2){
+						event.name=player.name1;
+						event.name2=player.name2;
+						var info=get.info(trigger.skill);
+						var yes=!info.check||info.check(trigger._trigger,player);
+						player.chooseBool('是否明置'+get.translation(event.name)+'以发动【'+get.translation(trigger.skill)+'】？').ai=function(){
+							return yes;
+						};
+					}
+					else{
+						event.name=bool1?player.name1:player.name2;
+						var info=get.info(trigger.skill);
+						var yes=!info.check||info.check(trigger._trigger,player);
+						player.chooseBool('是否明置'+get.translation(event.name)+'以发动【'+get.translation(trigger.skill)+'】？').ai=function(){
+							return yes;
+						};
+					}
 				}
 				"step 1"
 				if(result.bool){
 					if(event.name==player.name1) player.showCharacter(0);
 					else player.showCharacter(1);
 					trigger.revealed=true;
+					event.finish();
+				}
+				else if(event.name2){
+					var info=get.info(trigger.skill);
+					var yes=!info.check||info.check(trigger._trigger,player);
+					player.chooseBool('是否明置'+get.translation(event.name2)+'以发动【'+get.translation(trigger.skill)+'】？').ai=function(){
+						return yes;
+					};
 				}
 				else{
+					event.finish();
 					trigger.untrigger();
 					trigger.cancelled=true;
+				}
+				"step 2"
+				if(event.name2){
+					if(result.bool){
+						player.showCharacter(1);
+						trigger.revealed=true;
+					}
+					else{
+						trigger.untrigger();
+						trigger.cancelled=true;
+					}
 				}
 			}
 		},
@@ -754,7 +869,7 @@ mode.guozhan={
 				if(from.identity==toidentity&&toidentity!='ye'){
 					return 4+difficulty;
 				}
-				if(lib.character[from.name1][1]==toidentity){
+				if(from.identity=='unknown'&&lib.character[from.name1][1]==toidentity){
 					if(get.totalPopulation(toidentity)+1<=get.population()/2) return 4+difficulty;
 				}
 				var groups=[];
@@ -787,7 +902,7 @@ mode.guozhan={
 				if(to==game.me) difficulty=(2-get.difficulty())*1.5;
 				if(from==to) return 5+difficulty;
 				if(from.identity==to.identity&&from.identity!='unknown'&&from.identity!='ye') return 5+difficulty;
-				if(lib.character[from.name1][1]==to.identity){
+				if(from.identity=='unknown'&&lib.character[from.name1][1]==to.identity){
 					if(get.totalPopulation(to.identity)+1<=get.population()/2) return 4+difficulty;
 				}
 				var toidentity=to.identity;

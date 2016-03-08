@@ -22,6 +22,13 @@ card.refresh={
 			usable:1,
 			filterCard:true,
 			check:function(card){
+				var player=_status.event.player;
+				var nh=player.num('h');
+				if(nh<=player.hp){
+					if(nh<3) return 0;
+					if(nh==3) return 5-ai.get.value(card);
+					return 7-ai.get.value(card);
+				}
 				return 10-ai.get.useful(card);
 			},
 			discard:false,
@@ -38,6 +45,13 @@ card.refresh={
 					ui.special.appendChild(cards[i]);
 				}
 				var muniu=player.get('e','5');
+				if(!muniu){
+					for(var i=0;i<cards.length;i++){
+						ui.discardPile.appendChild(cards[i]);
+					}
+					event.finish();
+					return;
+				}
 				if(muniu.cards==undefined) muniu.cards=[];
 				muniu.cards.push(cards[0]);
 				var players=[];
@@ -221,11 +235,7 @@ card.refresh={
 						if(card.cards&&card.cards.length){
 							player.$throw(card.cards,1000);
 							player.popup('muniu');
-							var str='木牛流马掉落了'+get.translation(card.cards[0]);
-							for(var j=1;j<card.cards.length;j++){
-								str+='、'+get.translation(card.cards[j]);
-							}
-							game.log(str);
+							game.log('木牛流马掉落了',card.cards);
 							while(card.cards.length){
 								card2=card.cards.shift();
 								if(card2.parentNode.id=='special'){

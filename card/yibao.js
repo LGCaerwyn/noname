@@ -35,14 +35,24 @@ card.yibao={
 				else{
 					if(!card.expired){
 						var target=player.next;
-						if(target.num('j','huoshan')&&!target.next.num('j','huoshan')){
-							target=target.next;
+						for(var iwhile=0;iwhile<10;iwhile++){
+							if(target.num('j','huoshan')){
+								target=target.next;
+							}
+							else{
+								break;
+							}
 						}
-						if(card.name!='huoshan'){
-							player.next.addJudge('huoshan',card);
+						if(target.num('j','huoshan')||target==player){
+							ui.discardPile.appendChild(card);
 						}
 						else{
-							player.next.addJudge(card);
+							if(card.name!='huoshan'){
+								target.addJudge('huoshan',card);
+							}
+							else{
+								target.addJudge(card);
+							}
 						}
 					}
 					else{
@@ -53,14 +63,24 @@ card.yibao={
 			cancel:function(){
 				if(!card.expired){
 					var target=player.next;
-					if(target.num('j','huoshan')&&!target.next.num('j','huoshan')){
-						target=target.next;
+					for(var iwhile=0;iwhile<10;iwhile++){
+						if(target.num('j','huoshan')){
+							target=target.next;
+						}
+						else{
+							break;
+						}
 					}
-					if(card.name!='huoshan'){
-						player.next.addJudge('huoshan',card);
+					if(target.num('j','huoshan')||target==player){
+						ui.discardPile.appendChild(card);
 					}
 					else{
-						player.next.addJudge(card);
+						if(card.name!='huoshan'){
+							target.addJudge('huoshan',card);
+						}
+						else{
+							target.addJudge(card);
+						}
 					}
 				}
 				else{
@@ -155,14 +175,24 @@ card.yibao={
 				else{
 					if(!card.expired){
 						var target=player.next;
-						if(target.num('j','hongshui')&&!target.next.num('j','hongshui')){
-							target=target.next;
+						for(var iwhile=0;iwhile<10;iwhile++){
+							if(target.num('j','hongshui')){
+								target=target.next;
+							}
+							else{
+								break;
+							}
 						}
-						if(card.name!='hongshui'){
-							target.addJudge('hongshui',card);
+						if(target.num('j','hongshui')||target==player){
+							ui.discardPile.appendChild(card);
 						}
 						else{
-							target.addJudge(card);
+							if(card.name!='hongshui'){
+								target.addJudge('hongshui',card);
+							}
+							else{
+								target.addJudge(card);
+							}
 						}
 					}
 					else{
@@ -173,14 +203,24 @@ card.yibao={
 			cancel:function(){
 				if(!card.expired){
 					var target=player.next;
-					if(target.num('j','hongshui')&&!target.next.num('j','hongshui')){
-						target=target.next;
+					for(var iwhile=0;iwhile<10;iwhile++){
+						if(target.num('j','hongshui')){
+							target=target.next;
+						}
+						else{
+							break;
+						}
 					}
-					if(card.name!='hongshui'){
-						target.addJudge('hongshui',card);
+					if(target.num('j','hongshui')||target==player){
+						ui.discardPile.appendChild(card);
 					}
 					else{
-						target.addJudge(card);
+						if(card.name!='hongshui'){
+							target.addJudge('hongshui',card);
+						}
+						else{
+							target.addJudge(card);
+						}
 					}
 				}
 				else{
@@ -319,8 +359,8 @@ card.yibao={
 				player.$compare(event.card1,target,event.card2);
 				game.delay(4);
 				"step 3"
-				game.log(get.translation(player)+'展示了'+get.translation(event.card1));
-				game.log(get.translation(target)+'展示了'+get.translation(event.card2));
+				game.log(player,'展示了',event.card1);
+				game.log(target,'展示了',event.card2);
 				if(get.color(event.card2)==get.color(event.card1)){
 					player.discard(event.card1).animate=false;
 					target.$gain2(event.card2);
@@ -349,8 +389,9 @@ card.yibao={
 				},
 				result:{
 					player:function(player,target){
-						if(player.num('h')<=Math.max(2,player.hp)&&_status.event.name=='chooseToUse'){
-							if(_status.event.filterCard({name:'dujian'})){
+						if(player.num('h')<=Math.min(5,Math.max(2,player.hp))&&_status.event.name=='chooseToUse'){
+							if(typeof _status.event.filterCard=='function'&&
+								_status.event.filterCard({name:'dujian'})){
 								return -10;
 							}
 							if(_status.event.skill){
@@ -449,7 +490,7 @@ card.yibao={
 		liuxinghuoyu:'流星火羽',
 		liuxinghuoyu_info:'出牌阶段，对一名有手牌或装备牌的角色使用，令其弃置0~2张牌，并受到2-X点火焰伤害，X为弃置的卡牌数',
 		dujian:'毒箭',
-		dujian_info:'出牌阶段，对一名有手牌或装备牌的角色使用，令其展示一张手牌，若与你选择的手牌颜色相同，你对其造成一点毒属性伤害',
+		dujian_info:'出牌阶段，对一名有手牌或装备牌的角色使用，令其展示一张手牌，若与你选择的手牌颜色相同，其流失一点体力',
 		qiankundai:'乾坤袋',
 		qiankundai_info:'你的手牌上限+1。当你失去该装备时，你摸取一张牌。',
 		hufu:'虎符',

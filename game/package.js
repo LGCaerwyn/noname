@@ -1,16 +1,13 @@
 character.pack={
     standard:'标准',
-    wind:'风包',
-    fire:'火包',
-    woods:'林包',
-    mountain:'山包',
+    shenhua:'神话再临',
     refresh:'界限突破',
     extra:'神将',
     sp:'SP',
     guozhan:'国战',
     yijiang:'一将成名',
-    jiange:'守卫剑阁',
-    zhuogui:'捉鬼驱邪',
+    // jiange:'守卫剑阁',
+    // zhuogui:'捉鬼驱邪',
     diy:'DIY',
     yxs:'英雄杀',
     hearth:'炉石传说',
@@ -26,6 +23,7 @@ card.pack={
     extra:'军争',
     refresh:'界限突破',
     guozhan:'国战',
+    mingzhong:'忠胆英杰',
     zhenfa:'阵法',
     qimou:'奇谋',
     yibao:'异宝',
@@ -40,6 +38,7 @@ play.pack={
     soldier:'士兵模式',
     wuxing:'五行生克',
     weather:'天气变化',
+    coin:'富甲天下',
 };
 mode.pack={
     identity:'身份',
@@ -57,10 +56,7 @@ background.pack={
     huangtian_bg:'黄天',
 };
 music.pack={
-    music_default:'默认',
     music_diaochan:'貂蝉',
     music_shezhan:'舌战',
     music_danji:'单骑',
-    music_random:'随机',
-    music_off:'关闭',
 }
