@@ -33,6 +33,22 @@ card.refresh={
 			},
 			discard:false,
 			lose:true,
+			sync:function(muniu){
+				if(game.online){
+					return;
+				}
+				if(!muniu.cards){
+					muniu.cards=[];
+				}
+				for(var i=0;i<muniu.cards.length;i++){
+					if(!muniu.cards[i].parentNode||muniu.cards[i].parentNode.id!='special'){
+						muniu.cards.splice(i--,1);
+					}
+				}
+				game.broadcast(function(muniu,cards){
+					muniu.cards=cards;
+				},muniu,muniu.cards);
+			},
 			filter:function(event,player){
 				return player.num('h')>0;
 			},
@@ -54,6 +70,9 @@ card.refresh={
 				}
 				if(muniu.cards==undefined) muniu.cards=[];
 				muniu.cards.push(cards[0]);
+				game.broadcast(function(muniu,cards){
+					muniu.cards=cards;
+				},muniu,muniu.cards);
 				var players=[];
 				for(var i=0;i<game.players.length;i++){
 					if(!game.players[i].get('e','5')&&game.players[i]!=player&&
@@ -64,11 +83,13 @@ card.refresh={
 				}
 				players.sort(lib.sort.seat);
 				var choice=players[0];
-				player.chooseTarget('是否移动木牛流马？',function(card,player,target){
+				var next=player.chooseTarget('是否移动木牛流马？',function(card,player,target){
 					return !target.isMin()&&player!=target&&!target.get('e','5');
-				}).ai=function(target){
-					return target==choice?1:-1;
-				};
+				});
+				next.set('ai',function(target){
+					return target==_status.event.choice?1:-1;
+				});
+				next.set('choice',choice);
 				"step 1"
 				if(result.bool){
 					var card=player.get('e','5');
@@ -98,11 +119,7 @@ card.refresh={
 				if(event.responded) return false;
 				var muniu=player.get('e','5');
 				if(!muniu.cards) return false;
-				for(var i=0;i<muniu.cards.length;i++){
-					if(muniu.cards[i].parentNode.id!='special'){
-						muniu.cards.splice(i,1);i--;
-					}
-				}
+				lib.skill.muniu_skill.sync(muniu);
 				for(var i=0;i<muniu.cards.length;i++){
 					if(event.filterCard(muniu.cards[i])) return true;
 				}
@@ -111,16 +128,21 @@ card.refresh={
 			direct:true,
 			content:function(){
 				"step 0"
-				var dialog=ui.create.dialog('木牛流马',player.get('e','5').cards);
-				player.chooseButton(dialog).filterButton=function(button){
-					return trigger.filterCard(button.link);
-				};
+				player.chooseButton(['木牛流马',player.get('e','5').cards]).set('filterButton',function(button){
+					var evt=_status.event.getParent()._trigger;
+					if(evt&&evt.filterCard){
+						return evt.filterCard(button.link,_status.event.player);
+					}
+					return true;
+				});
 				"step 1"
 				if(result.bool){
 					trigger.untrigger();
 					trigger.responded=true;
-					trigger.result={bool:true,card:result.buttons[0].link};
-					player.get('e','5').cards.remove(result.buttons[0].link);
+					trigger.result={bool:true,card:result.links[0]};
+					var muniu=player.get('e','5');
+					muniu.cards.remove(result.links[0]);
+					lib.skill.muniu_skill.sync(muniu);
 				}
 			},
 			ai:{
@@ -131,26 +153,28 @@ card.refresh={
 		},
 		muniu_skill4:{
 			enable:'chooseToUse',
-			direct:true,
 			filter:function(event,player){
 				var muniu=player.get('e','5');
 				if(!muniu.cards) return false;
-				for(var i=0;i<muniu.cards.length;i++){
-					if(muniu.cards[i].parentNode.id!='special'){
-						muniu.cards.splice(i,1);i--;
-					}
-				}
+				lib.skill.muniu_skill.sync(muniu);
 				for(var i=0;i<muniu.cards.length;i++){
 					if(event.filterCard(muniu.cards[i],player)) return true;
 				}
 				return false;
 			},
-			delay:0,
-			content:function(){
-				"step 0"
-				var dialog=ui.create.dialog('木牛流马',player.get('e','5').cards);
-				var trigger=event.parent.parent;
-				player.chooseButton(dialog,function(button){
+			chooseButton:{
+				dialog:function(event,player){
+					return ui.create.dialog('木牛流马',player.get('e','5').cards,'hidden');
+				},
+				filter:function(button,player){
+					var evt=_status.event.getParent();
+					if(evt&&evt.filterCard){
+						return evt.filterCard(button.link,player,_status.event.getParent());
+					}
+					return true;
+				},
+				check:function(button){
+					var player=_status.event.player;
 					if(get.select(get.info(button.link).selectTarget)[1]==-1){
 						if(get.type(button.link)=='delay') return -1;
 						if(get.type(button.link)=='equip'){
@@ -161,29 +185,36 @@ card.refresh={
 						if(get.tag(button.link,'multitarget')) return -1;
 						if(button.link.name=='huoshaolianying') return -1;
 					}
-					return 1;
-				}).filterButton=function(button){
-					return trigger.filterCard(button.link,player,trigger);
-				};
-				player.addTempSkill('muniu_skill8',['useCardAfter','phaseAfter']);
-				"step 1"
-				if(result.bool){
-					lib.skill.muniu_skill5.viewAs=result.buttons[0].link;
-					event.parent.parent.backup('muniu_skill5');
-					event.parent.parent.step=0;
-					if(event.isMine()){
-						event.parent.parent.openskilldialog='选择'+get.translation(result.buttons[0].link)+'的目标';
+					if(button.link.name=='jiu'){
+						if(ai.get.effect(player,{name:'jiu'},player)>0){
+							return 1;
+						}
+						return -1;
 					}
-				}
-				else{
-					event.parent.parent.step=0;
+					return 1;
+				},
+				backup:function(links,player){
+					return {
+						filterCard:function(){return false},
+						selectCard:-1,
+						viewAs:links[0],
+						onuse:function(result,player){
+							var muniu=player.get('e','5');
+							if(muniu&&muniu.cards){
+								muniu.cards.remove(result.card);
+								lib.skill.muniu_skill.sync(muniu);
+							}
+						}
+					}
+				},
+				prompt:function(links,player){
+					return '选择'+get.translation(links)+'的目标';
 				}
 			},
 			ai:{
 				order:4,
 				result:{
 					player:function(player){
-						if(player.skills.contains('muniu_skill8')) return 0;
 						if(_status.dying) return ai.get.attitude(player,_status.dying);
 						return 1;
 					}
@@ -192,22 +223,13 @@ card.refresh={
 				value:-1
 			}
 		},
-		muniu_skill5:{
-			filterCard:function(){return false},
-			selectCard:-1
-		},
 		muniu_skill6:{},
-		muniu_skill8:{},
 		muniu_skill7:{
 			filter:function(){return false},
 			hiddenCard:function(player,name){
 				var muniu=player.get('e','5');
 				if(!muniu.cards) return false;
-				for(var i=0;i<muniu.cards.length;i++){
-					if(muniu.cards[i].parentNode.id!='special'){
-						muniu.cards.splice(i,1);i--;
-					}
-				}
+				lib.skill.muniu_skill.sync(muniu);
 				for(var i=0;i<muniu.cards.length;i++){
 					if(muniu.cards[i].name==name) return true;
 				}
@@ -257,8 +279,8 @@ card.refresh={
 		muniu_skill2:'流马',
 		muniu_skill3:'流马',
 		muniu_skill4:'流马',
-		muniu_skill5:'流马',
 		muniu_skill6:'流马',
+		muniu_skill4_backup:'流马',
 		muniu_info:'出牌阶段限一次，你可以将一张手牌扣置于你装备区里的【木牛流马】下，若如此做，你可以将此装备移动到一名其他角色的装备区里；你可以将此装备牌下的牌如手牌般使用或打出。',
 		muniu_skill_info:'出牌阶段限一次，你可以将一张手牌扣置于你装备区里的【木牛流马】下，若如此做，你可以将此装备移动到一名其他角色的装备区里；你可以将此装备牌下的牌如手牌般使用或打出。',
 	},

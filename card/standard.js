@@ -77,16 +77,18 @@ card.standard={
 				}
 				else{
 					var next=target.chooseToRespond({name:'shan'});
-					next.ai=function(){
+					next.set('ai',function(){
+						var target=_status.event.player;
+						var evt=_status.event.getParent();
 						var sks=target.get('s');
 						if(sks.contains('leiji')||
 							sks.contains('diyleiji')||
 							sks.contains('lingbo')){
 							return 1;
 						}
-						if(ai.get.damageEffect(target,player,target,card.nature)>=0) return -1;
+						if(ai.get.damageEffect(target,evt.player,target,evt.card.nature)>=0) return -1;
 						return 1;
-					};
+					});
 					next.autochoose=lib.filter.autoRespondShan;
 				}
 				"step 1"
@@ -226,13 +228,14 @@ card.standard={
 						else if(nh==target.hp+1&&target.hp>=2&&target.num('h','tao')<=1){
 							keep=true;
 						}
+						var mode=get.mode();
 						if(target.hp>=2&&keep&&target.hasFriend()){
 							if(target.hp>2) return 0;
 							if(target.hp==2){
 								for(var i=0;i<game.players.length;i++){
 									if(target!=game.players[i]&&ai.get.attitude(target,game.players[i])>=3){
 										if(game.players[i].hp<=1) return 0;
-										if(lib.config.mode=='identity'&&game.players[i].isZhu&&game.players[i].hp<=2) return 0;
+										if(mode=='identity'&&game.players[i].isZhu&&game.players[i].hp<=2) return 0;
 									}
 								}
 							}
@@ -240,8 +243,8 @@ card.standard={
 						if(target.hp<0&&target!=player&&target.identity!='zhu') return 0;
 						var att=ai.get.attitude(player,target);
 						if(att<3&&att>=0&&player!=target) return 0;
-						var tri=_status.event.parent._trigger;
-						if(lib.config.mode=='identity'&&player.identity=='fan'&&target.identity=='fan'){
+						var tri=_status.event.getParent()._trigger;
+						if(mode=='identity'&&player.identity=='fan'&&target.identity=='fan'){
 							if(tri&&tri.name=='dying'&&tri.source&&tri.source.identity=='fan'&&tri.source!=target){
 								var num=0;
 								for(var i=0;i<game.players.length;i++){
@@ -254,12 +257,12 @@ card.standard={
 								return 0;
 							}
 						}
-						if(lib.config.mode=='identity'&&player.identity=='zhu'&&target.identity=='nei'){
+						if(mode=='identity'&&player.identity=='zhu'&&target.identity=='nei'){
 							if(tri&&tri.name=='dying'&&tri.source&&tri.source.identity=='zhong'){
 								return 0;
 							}
 						}
-						if(lib.config.mode=='stone'&&target.isMin()&&
+						if(mode=='stone'&&target.isMin()&&
 						player!=target&&tri&&tri.name=='dying'&&player.side==target.side&&
 						tri.source!=target.getEnemy()){
 							return 0;
@@ -452,13 +455,18 @@ card.standard={
 				_status.dieClose.push(dialog);
 				dialog.videoId=lib.status.videoId++;
 				game.addVideo('cardDialog',null,['五谷丰登',get.cardsInfo(cards),dialog.videoId]);
-				event.parent.preResult=dialog.videoId;
+				event.getParent().preResult=dialog.videoId;
+				game.broadcast(function(cards,id){
+					var dialog=ui.create.dialog('五谷丰登',cards,true);
+					_status.dieClose.push(dialog);
+					dialog.videoId=id;
+				},cards,dialog.videoId);
 			},
 			content:function(){
 				"step 0"
 				for(var i=0;i<ui.dialogs.length;i++){
 					if(ui.dialogs[i].videoId==event.preResult){
-						event.dialog=ui.dialogs[i];
+						event.dialog=ui.dialogs[i];break;
 					}
 				}
 				if(!event.dialog){
@@ -466,26 +474,54 @@ card.standard={
 					return;
 				}
 				if(event.dialog.buttons.length>1){
-					var next=target.chooseButton(event.dialog,true,function(button){
+					var next=target.chooseButton(true,function(button){
 						return ai.get.value(button.link,_status.event.player);
 					});
-					next.closeDialog=false;
-					next.dialog.style.display='';
+					next.set('dialog',event.preResult);
+					next.set('closeDialog',false);
+					next.set('dialogdisplay',true);
 				}
 				else{
 					event.directButton=event.dialog.buttons[0];
 				}
 				"step 1"
 				var dialog=event.dialog;
-				var button=event.directButton||result.buttons[0];
-				if(button.link){
-					target.gain(button.link);
-					target.$gain2(button.link);
+				var card;
+				if(event.directButton){
+					card=event.directButton.link;
 				}
-				dialog.buttons.remove(button);
-				button.getElementsByClassName('info')[0].innerHTML=get.translation(target.name);
-				dialog.content.firstChild.innerHTML=
-				get.translation(target)+'选择了'+get.translation(button.link);
+				else{
+					card=result.links[0];
+				}
+
+				var button;
+				for(var i=0;i<dialog.buttons.length;i++){
+					if(dialog.buttons[i].link==card){
+						button=dialog.buttons[i];
+						button.querySelector('.info').innerHTML=get.translation(target.name);
+						dialog.buttons.remove(button);
+						break;
+					}
+				}
+				var capt=get.translation(target)+'选择了'+get.translation(button.link);
+				if(card){
+					target.gain(card);
+					target.$gain2(card);
+					game.broadcast(function(card,id,name,capt){
+						var dialog=get.idDialog(id);
+						if(dialog){
+							dialog.content.firstChild.innerHTML=capt;
+							for(var i=0;i<dialog.buttons.length;i++){
+								if(dialog.buttons[i].link==card){
+									dialog.buttons[i].querySelector('.info').innerHTML=name;
+									dialog.buttons.splice(i--,1);
+									break;
+								}
+							}
+						}
+					},card,dialog.videoId,get.translation(target.name),capt);
+				}
+				dialog.content.firstChild.innerHTML=capt;
 				game.addVideo('dialogCapt',null,[dialog.videoId,dialog.content.firstChild.innerHTML]);
 				game.log(target,'选择了',button.link);
 				game.delay();
@@ -498,6 +534,13 @@ card.standard={
 						break;
 					}
 				}
+				game.broadcast(function(id){
+					var dialog=get.idDialog(id);
+					if(dialog){
+						dialog.close();
+						_status.dieClose.remove(dialog);
+					}
+				},event.preResult);
 				game.addVideo('cardDialog',null,event.preResult);
 			},
 			ai:{
@@ -565,12 +608,13 @@ card.standard={
 			content:function(){
 				"step 0"
 				var next=target.chooseToRespond({name:'sha'});
-				next.ai=function(card){
-					if(ai.get.damageEffect(target,player,target)>=0) return 0;
-					if(player.get('s').contains('xinwuyan')) return 0;
-					if(target.get('s').contains('xinwuyan')) return 0;
+				next.set('ai',function(card){
+					var evt=_status.event.getParent();
+					if(ai.get.damageEffect(evt.target,evt.player,evt.target)>=0) return 0;
+					if(evt.player.get('s').contains('xinwuyan')) return 0;
+					if(evt.target.get('s').contains('xinwuyan')) return 0;
 					return 1;
-				};
+				});
 				next.autochoose=lib.filter.autoRespondSha;
 				"step 1"
 				if(result.bool==false){
@@ -595,7 +639,7 @@ card.standard={
 						}
 						if(num>1) return 0;
 						var nh=target.num('h');
-						if(lib.config.mode=='identity'){
+						if(get.mode()=='identity'){
 							if(target.isZhu&&nh<=2&&target.hp<=1) return -100;
 						}
 						if(nh==0) return -2;
@@ -624,12 +668,13 @@ card.standard={
 			content:function(){
 				"step 0"
 				var next=target.chooseToRespond({name:'shan'});
-				next.ai=function(card){
-					if(ai.get.damageEffect(target,player,target)>=0) return 0;
-					if(player.get('s').contains('xinwuyan')) return 0;
-					if(target.get('s').contains('xinwuyan')) return 0;
+				next.set('ai',function(card){
+					var evt=_status.event.getParent();
+					if(ai.get.damageEffect(evt.target,evt.player,evt.target)>=0) return 0;
+					if(evt.player.get('s').contains('xinwuyan')) return 0;
+					if(evt.target.get('s').contains('xinwuyan')) return 0;
 					return 1;
-				};
+				});
 				next.autochoose=lib.filter.autoRespondShan;
 				"step 1"
 				if(result.bool==false){
@@ -654,7 +699,7 @@ card.standard={
 						}
 						if(num>1) return 0;
 						var nh=target.num('h');
-						if(lib.config.mode=='identity'){
+						if(get.mode()=='identity'){
 							if(target.isZhu&&nh<=2&&target.hp<=1) return -100;
 						}
 						if(nh==0) return -2;
@@ -922,9 +967,8 @@ card.standard={
 			},
 			content:function(){
 				"step 0"
-				targets[0].chooseToUse(
-					'对'+get.translation(targets[1])+'使用一张杀，或令'+get.translation(player)+'获得你的武器牌',
-					{name:'sha'},targets[1],-1).targetRequired=true;
+				targets[0].chooseToUse('对'+get.translation(targets[1])+'使用一张杀，或令'+get.translation(player)+'获得你的武器牌',
+					{name:'sha'},targets[1],-1).set('targetRequired',true);
 				"step 1"
 				if(result.bool==false){
 					player.gain(targets[0].get('e',{subtype:'equip1'}));
@@ -967,7 +1011,9 @@ card.standard={
 				expose:0.2
 			},
 			notarget:true,
-			content:function(){},
+			content:function(){
+				event.result='wuxied';
+			},
 		},
 		lebu:{
 			audio:true,
@@ -1102,7 +1148,8 @@ card.standard={
 						}
 						if(num>0) return num;
 						if(num==0){
-							if(lib.config.mode=='identity'){
+							var mode=get.mode();
+							if(mode=='identity'){
 								if(target.identity=='nei') return 1;
 								var situ=ai.get.situation();
 								if(target.identity=='fan'){
@@ -1112,7 +1159,7 @@ card.standard={
 									if(situ<-1) return 1;
 								}
 							}
-							else if(lib.config.mode=='guozhan'){
+							else if(mode=='guozhan'){
 								if(target.identity=='ye') return 1;
 								for(var i=0;i<game.players.length;i++){
 									if(game.players[i].identity=='unknown') return -1;
@@ -1154,9 +1201,10 @@ card.standard={
 			},
 			content:function(){
 				"step 0"
-				trigger.target.chooseToDiscard().ai=function(card){
-					return -ai.get.attitude(trigger.target,player)-ai.get.value(card);
-				};
+				trigger.target.chooseToDiscard().set('ai',function(card){
+					var trigger=_status.event.getParent()._trigger;
+					return -ai.get.attitude(trigger.target,trigger.player)-ai.get.value(card);
+				});
 				"step 1"
 				if(result.bool==false) player.draw();
 			}
@@ -1175,23 +1223,26 @@ card.standard={
 		qinglong_skill:{
 			trigger:{player:'shaMiss'},
 			direct:true,
+			filter:function(event,player){
+				return player.canUse('sha',event.target);
+			},
 			content:function(){
 				"step 0"
 				if(player.skills.contains('jiu')){
-					player.removeSkill('jiu');
-					if(player.node.jiu){
-						player.node.jiu.delete();
-						player.node.jiu2.delete();
-						delete player.node.jiu;
-						delete player.node.jiu2;
-					}
+					game.broadcastAll(function(player){
+						player.removeSkill('jiu');
+						if(player.node.jiu){
+							player.node.jiu.delete();
+							player.node.jiu2.delete();
+							delete player.node.jiu;
+							delete player.node.jiu2;
+						}
+					},player);
 					event.jiu=true;
 				}
 				player.chooseToUse('是否发动青龙偃月刀？',{name:'sha'},trigger.target,-1).logSkill='qinglong';
 				"step 1"
-				if(result.bool){
-					player.logSkill('qinglong');
-				}
+				if(result.bool);
 				else if(event.jiu){
 					player.addSkill('jiu');
 				}
@@ -1223,21 +1274,21 @@ card.standard={
 			content:function(){
 				"step 0"
 				var next=player.chooseToDiscard('是否发动贯石斧？',2,'he',function(card){
-					return player.get('e',{subtype:'equip1'}).contains(card)==false;
+					return _status.event.player.get('e',{subtype:'equip1'}).contains(card)==false;
 				});
 				next.logSkill='guanshi_skill';
-				next.ai=
-				function(card){
-					if(ai.get.attitude(player,trigger.target)<0){
-						if(player.skills.contains('jiu')||
-						player.skills.contains('tianxianjiu')||
-						trigger.target.hp==1){
+				next.set('ai',function(card){
+					var evt=_status.event.getParent();
+					if(ai.get.attitude(evt.player,evt._trigger.target)<0){
+						if(evt.player.skills.contains('jiu')||
+						evt.player.skills.contains('tianxianjiu')||
+						evt._trigger.target.hp==1){
 							return 8-ai.get.value(card)
 						}
 						return 5-ai.get.value(card)
 					}
 					return -1;
-				};
+				});
 				"step 1"
 				if(result.bool){
 					trigger.untrigger();
@@ -1270,17 +1321,17 @@ card.standard={
 			content:function(){
 				"step 0"
 				var att=(ai.get.attitude(player,trigger.target)<=0);
-				player.chooseButton(ui.create.dialog('选择要弃置的马',
-				trigger.target.get('e',{subtype:['equip3','equip4']}))).ai=function(button){
-					if(att){
-						return ai.get.buttonValue(button);
-					}
+				var next=player.chooseButton();
+				next.set('att',att);
+				next.set('createDialog',['选择要弃置的马',trigger.target.get('e',{subtype:['equip3','equip4']})]);
+				next.set('ai',function(button){
+					if(_status.event.att) return ai.get.buttonValue(button);
 					return 0;
-				};
+				});
 				"step 1"
 				if(result.bool){
 					player.logSkill('qilin_skill');
-					trigger.target.discard(result.buttons[0].link);
+					trigger.target.discard(result.links[0]);
 				}
 			}
 		},
@@ -1289,7 +1340,7 @@ card.standard={
 			filter:function(event,player){
 				if(event.responded) return false;
 				if(!event.filterCard({name:'shan'})) return false;
-				if(event.parent.player.num('s','unequip')) return false;
+				if(event.getParent().player.num('s','unequip')) return false;
 				return true;
 			},
 			audio:true,
@@ -1312,225 +1363,245 @@ card.standard={
 				}
 			}
 		},
-		_wuxie1:{
-			trigger:{player:'useCardToBefore'},
+		_wuxie:{
+			trigger:{player:['useCardToBefore','phaseJudge']},
 			priority:5,
+			popup:false,
+			forced:true,
 			filter:function(event,player){
-				if(!event.target) return false;
-				if(get.type(event.card)!='trick') return false;
+				if(event.name!='phaseJudge'){
+					if(!event.target) return false;
+					if(get.type(event.card)!='trick') return false;
+				}
 				return true;
 			},
-			popup:false,
-			forced:true,
 			content:function(){
-				"step 0"
+				'step 0'
 				if(trigger.multitarget){
-					event.source2=trigger.targets;
+					event.targets=trigger.targets;
 				}
-				event.source=trigger.target;
-				event.current=trigger.player;
-				event.end=trigger.player;
+				event.target=trigger.target;
+				event.source=trigger.player;
 				event.state=true;
 				event.card=trigger.card;
-				"step 1"
-				if((ui.wuxie.classList.contains('glow')||
-					(ui.tempnowuxie&&ui.tempnowuxie.classList.contains('glow')&&
-					event.state))&&!_status.auto){
-					if(event.current==game.me||event.current.isUnderControl()){
-						event._result={bool:false};
-						return;
+				event._global_waiting=true;
+				event.tempnowuxie=(trigger.targets&&trigger.targets.length>1&&!trigger.multitarget);
+				event.filterCard=function(card,player){
+					if(card.name!='wuxie') return false;
+					var mod=game.checkMod(card,player,'unchanged','cardEnabled',player.get('s'));
+					if(mod!='unchanged') return mod;
+					return true;
+				};
+				event.send=function(player,state,isJudge,card,source,target,targets,id,id2,tempnowuxie){
+					state=state?1:-1;
+					var str='';
+					if(isJudge){
+						str+=get.translation(source)+'的';
 					}
-				}
-				if(lib.config.wuxie_self&&event.state){
-					if((event.current==game.me||event.current.isUnderControl())&&
-						(trigger.player==game.me||trigger.player.isUnderControl())){
-						if(trigger.targets&&trigger.targets.length==1){
-							event._result={bool:false};
-							return;
-						}
+					str+=get.translation(card);
+					if(targets||target){
+						str+='对'+get.translation(targets||target);
 					}
-				}
-				if(event.current.num('h','wuxie')==0){
-					var noask=true;
-					var skills=event.current.get('s',true).concat(lib.skill.global);
-					game.expandSkills(skills);
-					for(var i=0;i<skills.length;i++){
-						var ifo=get.info(skills[i]);
-						if(ifo.viewAs&&
-							ifo.viewAs.name=='wuxie'){
-							if(!ifo.viewAsFilter||ifo.viewAsFilter(event.current)){
-								noask=false;break;
+					str+='将'+(state>0?'生效':'失效')+'，是否无懈？';
+
+					if(player.isUnderControl(true)&&!_status.auto&&!ui.tempnowuxie&&tempnowuxie){
+						ui.tempnowuxie=ui.create.control('不无懈'+get.translation(card.name),ui.click.tempnowuxie);
+						ui.tempnowuxie._origin=id2;
+					}
+					var next=player.chooseToUse({
+						filterCard:function(card,player){
+							if(card.name!='wuxie') return false;
+							var mod=game.checkMod(card,player,'unchanged','cardEnabled',player.get('s'));
+							if(mod!='unchanged') return mod;
+							return true;
+						},
+						prompt:str,
+						type:'wuxie',
+						state:state,
+						ai1:function(){
+							if(isJudge){
+								var info=lib.card[card.viewAs||card.name];
+								if(info&&info.ai&&info.ai.wuxie){
+									var aiii=info.ai.wuxie(source,card,source,_status.event.player,state);
+									if(typeof aiii=='number') return aiii;
+								}
+								if(Math.abs(ai.get.attitude(_status.event.player,source))<3) return 0;
+								if(source.skills.contains('guanxing')) return 0;
+								if(card.name!='lebu'&&card.name!='bingliang'){
+									if(source!=_status.event.player){
+										return 0;
+									}
+								}
+								var eff=ai.get.effect(source,card,source,source);
+								if(eff>=0) return 0;
+								return state*ai.get.attitude(_status.event.player,source);
 							}
+							else{
+								var info=get.info(card);
+								if(info.ai&&info.ai.wuxie){
+									var aiii=info.ai.wuxie(target,card,source,_status.event.player,state);
+									if(typeof aiii=='number') return aiii;
+								}
+								if(info.multitarget&&targets){
+									var eff=0;
+									for(var i=0;i<targets.length;i++){
+										eff+=ai.get.effect(targets[i],card,source,_status.event.player)
+									}
+									return -eff*state;
+								}
+								if(Math.abs(ai.get.attitude(_status.event.player,target))<3) return 0;
+								return -ai.get.effect(target,card,source,_status.event.player)*state;
+							}
+						},
+						source:target,
+						source2:targets,
+						id:id
+					});
+					if(game.online){
+						_status.event._resultid=id;
+						game.resume();
+					}
+					else{
+						next.nouse=true;
+					}
+				};
+				'step 1'
+				var list=[];
+				event.list=list;
+				event.id=get.id();
+				for(var i=0;i<game.players.length;i++){
+					if(game.players[i].hasWuxie()){
+						list.push(game.players[i]);
+					}
+				}
+				list.sort(function(a,b){
+					return get.distance(event.source,a,'absolute')-get.distance(event.source,b,'absolute');
+				});
+				'step 2'
+				if(event.list.length==0){
+					event.finish();
+					if(!event.state){
+						trigger.untrigger();
+						if(event.triggername=='phaseJudge'){
+							trigger.cancelled=true;
 						}
 						else{
-							var hiddenCard=get.info(skills[i]).hiddenCard;
-							if(typeof hiddenCard=='function'&&hiddenCard(event.current,'wuxie',event)){
-								noask=false;break;
-							}
+							trigger.finish();
 						}
-					}
-					if(noask){
-						if(event.current==game.me&&ui.tempnowuxie){
-							ui.tempnowuxie.close();
-							delete ui.tempnowuxie;
-						}
-						event._result={bool:false};
-						return;
 					}
 				}
-				var str=get.translation(event.card.name)+'对'+get.translation(event.source2||event.source)+'将';
-				if(event.state){
-					str+='生效';
+				else if(_status.connectMode&&(event.list[0].isOnline()||event.list[0]==game.me)){
+					event.goto(4);
 				}
 				else{
-					str+='失效';
+					event.current=event.list.shift();
+					event.send(event.current,event.state,event.triggername=='phaseJudge',
+					event.card,event.source,event.target,event.targets,event.id,trigger.parent.id,event.tempnowuxie);
 				}
-				str+='，是否无懈？';
-				var nevt=event.current.chooseToUse({
-					filterCard:function(card,player){
-						if(card.name!='wuxie') return false;
-						var mod=game.checkMod(card,player,'unchanged','cardEnabled',player.get('s'));
-						if(mod!='unchanged') return mod;
-						return true;
-					},
-					prompt:str,
-					ai1:function(card){
-						var state=event.state?1:-1;
-						var info=get.info(trigger.card);
-						if(info.ai&&info.ai.wuxie){
-							var aiii=info.ai.wuxie(trigger.target,trigger.card,trigger.player,_status.event.player,state);
-							if(typeof aiii=='number') return aiii;
-						}
-						if(info.multitarget){
-							var eff=0;
-							for(var i=0;i<trigger.targets.length;i++){
-								eff+=ai.get.effect(trigger.targets[i],trigger.card,trigger.player,_status.event.player)
-							}
-							return -eff*state;
-						}
-						if(Math.abs(ai.get.attitude(_status.event.player,trigger.target))<3) return 0;
-						return -ai.get.effect(trigger.target,trigger.card,trigger.player,_status.event.player)*state;
-					},
-					source:event.source,
-					source2:event.source2
-				});
-				if(event.current.isUnderControl(true)&&!_status.auto&&!trigger.multitarget){
-					if(trigger.targets.length>1&&!ui.tempnowuxie){
-						ui.tempnowuxie=ui.create.control('不无懈'+get.translation(trigger.card.name),ui.click.tempnowuxie);
-						ui.tempnowuxie._origin=trigger.parent;
-					}
-				}
-				"step 2"
+				'step 3'
 				if(result.bool){
-					event.end=event.current;
-					if(event.state) event.state=false;
-					else event.state=true;
-					event.goto(1);
-				}
-				else if(event.current.next==event.end||event.end.isDead()){
-					if(event.state==false){
-						trigger.untrigger();
-						trigger.finish();
-					}
+					event.wuxieresult=event.current;
+					event.wuxieresult2=result;
+					event.goto(8);
 				}
 				else{
-					event.current=event.current.next;
-					event.goto(1);
+					event.goto(2);
 				}
-			}
-		},
-		_wuxie2:{
-			trigger:{player:'phaseJudge'},
-			priority:5,
-			popup:false,
-			forced:true,
-			content:function(){
-				"step 0"
-				event.current=trigger.player;
-				event.end=trigger.player;
-				event.state=true;
-				event.card=trigger.card;
-				"step 1"
-				if(ui.wuxie.classList.contains('glow')&&!_status.auto){
-					if(event.current==game.me||event.current.isUnderControl()){
-						event._result={bool:false};
-						return;
+				'step 4'
+				var id=event.id;
+				var sendback=function(result,player){
+					if(result&&result.id==id&&!event.wuxieresult&&result.bool){
+						event.wuxieresult=player;
+						event.wuxieresult2=result;
+						game.broadcast('cancel',id);
+						if(_status.event.id==id&&_status.event.name=='chooseToUse'&&_status.paused){
+							return (function(){
+								event.resultOL=_status.event.resultOL;
+								ui.click.cancel();
+								if(ui.confirm) ui.confirm.close();
+							});
+						}
+					}
+					else{
+						if(_status.event.id==id&&_status.event.name=='chooseToUse'&&_status.paused){
+							return (function(){
+								event.resultOL=_status.event.resultOL;
+							});
+						}
+					}
+				};
+
+				var withme=false;
+				var withol=false;
+				var list=event.list;
+				for(var i=0;i<list.length;i++){
+					if(list[i].isOnline()){
+						withol=true;
+						list[i].wait(sendback);
+						list[i].send(event.send,list[i],event.state,event.triggername=='phaseJudge',
+						event.card,event.source,event.target,event.targets,event.id,trigger.parent.id,event.tempnowuxie);
+						list.splice(i--,1);
+					}
+					else if(list[i]==game.me){
+						withme=true;
+						event.send(list[i],event.state,event.triggername=='phaseJudge',
+						event.card,event.source,event.target,event.targets,event.id,trigger.parent.id,event.tempnowuxie);
+						list.splice(i--,1);
 					}
 				}
-				if(event.current.get('h','wuxie')==0){
-					var noask=true;
-					var skills=event.current.get('s',true).concat(lib.skill.global);
-					game.expandSkills(skills);
-					for(var i=0;i<skills.length;i++){
-						var ifo=get.info(skills[i]);
-						if(ifo.viewAs&&
-							ifo.viewAs.name=='wuxie'){
-							if(!ifo.viewAsFilter||ifo.viewAsFilter(event.current)){
-								noask=false;break;
-							}
+				if(!withme){
+					event.goto(6);
+				}
+				if(_status.connectMode){
+					if(withme||withol){
+						for(var i=0;i<game.players.length;i++){
+							game.players[i].showTimer();
+						}
+					}
+				}
+				event.withol=withol;
+				'step 5'
+				if(result&&result.bool&&!event.wuxieresult){
+					game.broadcast('cancel',event.id);
+					event.wuxieresult=game.me;
+					event.wuxieresult2=result;
+				}
+				'step 6'
+				if(event.withol&&!event.resultOL){
+					game.pause();
+				}
+				'step 7'
+				for(var i=0;i<game.players.length;i++){
+					game.players[i].hideTimer();
+				}
+				'step 8'
+				if(event.wuxieresult){
+					event.wuxieresult.useResult(event.wuxieresult2);
+				}
+				'step 9'
+				if(event.wuxieresult){
+					if(result=='wuxied'){
+						event.state=!event.state;
+					}
+					event.goto(1);
+				}
+				else if(event.list.length){
+					event.goto(2);
+				}
+				else{
+					if(!event.state){
+						trigger.untrigger();
+						if(event.triggername=='phaseJudge'){
+							trigger.cancelled=true;
 						}
 						else{
-							var hiddenCard=get.info(skills[i]).hiddenCard;
-							if(typeof hiddenCard=='function'&&hiddenCard(event.current,'wuxie',event)){
-								noask=false;break;
-							}
+							trigger.finish();
 						}
 					}
-					if(noask) {event._result={bool:false};return;}
 				}
-				var str=get.translation(event.card.viewAs||event.card.name)+'对'+get.translation(trigger.player.name)+'将';
-				if(event.state){
-					str+='生效';
-				}
-				else{
-					str+='失效';
-				}
-				str+='，是否无懈？';
-				event.current.chooseToUse({
-					filterCard:function(card,player){
-						if(card.name!='wuxie') return false;
-						var mod=game.checkMod(card,player,'unchanged','cardEnabled',player.get('s'));
-						if(mod!='unchanged') return mod;
-						return true;
-					},
-					prompt:str,
-					ai1:function(card){
-						var state=event.state?1:-1;
-						var info=lib.card[trigger.card.viewAs||trigger.card.name];
-						if(info&&info.ai&&info.ai.wuxie){
-							var aiii=info.ai.wuxie(trigger.player,trigger.card,trigger.player,_status.event.player,state);
-							if(typeof aiii=='number') return aiii;
-						}
-						if(Math.abs(ai.get.attitude(_status.event.player,trigger.player))<3) return 0;
-						if(trigger.player.skills.contains('guanxing')) return 0;
-						if(trigger.card.name!='lebu'&&trigger.card.name!='bingliang'){
-							if(trigger.player!=_status.event.player){
-								return 0;
-							}
-						}
-						var eff=ai.get.effect(trigger.player,trigger.card,trigger.player,player);
-						if(eff>=0) return 0;
-						return state*ai.get.attitude(_status.event.player,trigger.player);
-					},
-					source:trigger.player
-				});
-				"step 2"
-				if(result.bool){
-					event.end=event.current;
-					if(event.state) event.state=false;
-					else event.state=true;
-					event.goto(1);
-				}
-				else if(event.current.next==event.end||event.end.isDead()){
-					if(event.state==false){
-						trigger.untrigger();
-						trigger.cancelled=true;
-					}
-				}
-				else{
-					event.current=event.current.next;
-					event.goto(1);
-				}
+				delete event.resultOL;
+				delete event.wuxieresult;
+				delete event.wuxieresult2;
 			}
 		},
 	},

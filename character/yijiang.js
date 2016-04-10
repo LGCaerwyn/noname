@@ -733,13 +733,15 @@ character.yijiang={
 				}
 				"step 2"
 				if(player.skills.contains('jiu')){
-					player.removeSkill('jiu');
-					if(player.node.jiu){
-						player.node.jiu.delete();
-						player.node.jiu2.delete();
-						delete player.node.jiu;
-						delete player.node.jiu2;
-					}
+					game.broadcastAll(function(player){
+						player.removeSkill('jiu');
+						if(player.node.jiu){
+							player.node.jiu.delete();
+							player.node.jiu2.delete();
+							delete player.node.jiu;
+							delete player.node.jiu2;
+						}
+					},player);
 					event.jiu=true;
 				}
 				player.chooseToUse('是否对'+get.translation(trigger.target)+'再使用一张杀？',
@@ -1349,7 +1351,7 @@ character.yijiang={
 		},
 		zhanjue2:{
 			audio:false,
-			trigger:{player:'phaseBegin'},
+			trigger:{player:'phaseBefore'},
 			forced:true,
 			popup:false,
 			silent:true,
@@ -2831,7 +2833,7 @@ character.yijiang={
 			forceunique:true,
 			trigger:{global:'phaseUseBegin'},
 			filter:function(event,player){
-				return event.player!=player&&player.num('h')>0;
+				return event.player!=player;
 			},
 			prompt:function(event,player){
 				return '是否对'+get.translation(event.player)+'发动【献图】？'
@@ -2893,17 +2895,28 @@ character.yijiang={
 		},
 		qiangzhi:{
 			audio:2,
-			enable:'phaseUse',
-			usable:1,
+			trigger:{player:'phaseUseBegin'},
+			direct:true,
 			filterTarget:function(card,player,target){
 				return target!=player&&target.num('h')>0;
 			},
 			content:function(){
-				var card=target.get('h').randomGet();
-				player.showCards(card);
-				player.storage.qiangzhi=get.type(card,'trick');
-				game.addVideo('storage',player,['qiangzhi',player.storage.qiangzhi]);
-				player.markSkill('qiangzhi');
+				'step 0'
+				player.chooseTarget('是否发动【强识】？',function(card,player,target){
+					return target!=player&&target.num('h')>0;
+				}).ai=function(){
+					return Math.random();
+				}
+				'step 1'
+				if(result.bool){
+					var target=result.targets[0];
+					player.logSkill('qiangzhi',target);
+					var card=target.get('h').randomGet();
+					player.showCards(card);
+					player.storage.qiangzhi=get.type(card,'trick');
+					game.addVideo('storage',player,['qiangzhi',player.storage.qiangzhi]);
+					player.markSkill('qiangzhi');
+				}
 			},
 			intro:{
 				content:function(type){
@@ -2992,6 +3005,7 @@ character.yijiang={
 				return ai.get.attitude(player,event.player)>0;
 			},
 			content:function(){
+				player.line(trigger.player,'green');
 				trigger.player.draw();
 			},
 			ai:{
@@ -4213,25 +4227,42 @@ character.yijiang={
 							if(player.num('h','jiu')>0) return 0;
 							if(player.num('e','zhuge')&&player.num('h','sha')>1) return 0;
 							if(!player.num('h','sha')) return 0;
+							var targets=[];
+							var target;
 							for(var i=0;i<game.players.length;i++){
 								if(ai.get.attitude(player,game.players[i])<0){
-									var target=game.players[i];
-									if(player.canUse('sha',target)&&ai.get.effect(target,{name:'sha'},player,player)>0){
-										var e2=target.get('e','2');
-										if(e2){
-											if(e2.name=='tengjia'){
-												if(!player.num('h',{name:'sha',nature:'fire'})&&!player.num('e','zhuque')) return 0;
-											}
-											if(e2.name=='renwang'){
-												if(!player.num('h',{name:'sha',color:'red'})) return 0;
-											}
-											if(e2.name=='baiyin') return 0;
-										}
-										if(player.num('e','guanshi')&&player.num('he')>2) return 1;
-										return target.num('h')>3?0:1;
+									if(player.canUse('sha',game.players[i],true,true)){
+										targets.push(game.players[i]);
 									}
 								}
 							}
+							if(targets.length){
+								target=targets[0];
+							}
+							else{
+								return 0;
+							}
+							var num=ai.get.effect(target,{name:'sha'},player,player);
+							for(var i=1;i<targets.length;i++){
+								var num2=ai.get.effect(targets[i],{name:'sha'},player,player);
+								if(num2>num){
+									target=targets[i];
+									num=num2;
+								}
+							}
+							if(num<=0) return 0;
+							var e2=target.get('e','2');
+							if(e2){
+								if(e2.name=='tengjia'){
+									if(!player.num('h',{name:'sha',nature:'fire'})&&!player.num('e','zhuque')) return 0;
+								}
+								if(e2.name=='renwang'){
+									if(!player.num('h',{name:'sha',color:'red'})) return 0;
+								}
+								if(e2.name=='baiyin') return 0;
+							}
+							if(player.num('e','guanshi')&&player.num('he')>2) return 1;
+							return target.num('h')>3?0:1;
 						}
 						if(player==_status.event.dying||player.isTurnedOver()) return 3;
 					}
@@ -4467,26 +4498,21 @@ character.yijiang={
 			enable:'phaseUse',
 			usable:1,
 			audio:2,
-			group:['qice3'],
-			direct:true,
 			filter:function(event,player){
 				return player.num('h')>0
 			},
-			delay:0,
-			content:function(){
-				"step 0"
-				var list=[];
-				player.getStat('skill').qice--;
-				for(var i in lib.card){
-					if(lib.card[i].mode&&lib.card[i].mode.contains(lib.config.mode)==false) continue;
-					if(lib.card[i].type=='trick') list.push(['锦囊','',i]);
-				}
-				list=['taoyuan','wugu','juedou','huogong','jiedao','tiesuo','guohe','shunshou','wuzhong','wanjian','nanman'];
-				for(var i=0;i<list.length;i++){
-					list[i]=['锦囊','',list[i]];
-				}
-				var dialog=ui.create.dialog([list,'vcard']);
-				player.chooseButton(dialog,function(button){
+			chooseButton:{
+				dialog:function(){
+					var list=['taoyuan','wugu','juedou','huogong','jiedao','tiesuo','guohe','shunshou','wuzhong','wanjian','nanman'];
+					for(var i=0;i<list.length;i++){
+						list[i]=['锦囊','',list[i]];
+					}
+					return ui.create.dialog([list,'vcard']);
+				},
+				filter:function(button,player){
+					return lib.filter.filterCard({name:button.link[2]},player,_status.event.getParent());
+				},
+				check:function(button,player){
 					var recover=0,lose=1;
 					for(var i=0;i<game.players.length;i++){
 						if(!game.players[i].isOut()){
@@ -4521,32 +4547,24 @@ character.yijiang={
 					if(lose>recover&&lose>0) return (button.link[2]=='nanman')?1:-1;
 					if(lose<recover&&recover>0) return (button.link[2]=='taoyuan')?1:-1;
 					return (button.link[2]=='wuzhong')?1:-1;
-				});
-				"step 1"
-				if(result.bool){
-					lib.skill.qice2.viewAs={name:result.buttons[0].link[2]};
-					// player.popup(result.buttons[0].link[2]);
-					event.parent.parent.backup('qice2');
-					event.parent.parent.step=0;
-					if(event.isMine()){
-						event.parent.parent.openskilldialog='将全部手牌当'+get.translation(result.buttons[0].link[2])+'使用';
+				},
+				backup:function(links,player){
+					return {
+						filterCard:true,
+						selectCard:-1,
+						audio:2,
+						popname:true,
+						viewAs:{name:links[0][2]},
 					}
-				}
-				else{
-					if(player.skills.contains('qice4')){
-						player.addTempSkill('qice5','phaseAfter')
-					}
-					else{
-						player.addTempSkill('qice4','phaseAfter')
-					}
-					event.finish();
+				},
+				prompt:function(links,player){
+					return '将全部手牌当'+get.translation(links[0][2])+'使用';
 				}
 			},
 			ai:{
 				order:1,
 				result:{
 					player:function(player){
-						if(player.skills.contains('qice5')) return 0;
 						var num=0;
 						var cards=player.get('h');
 						if(cards.length>=3&&player.hp>=3) return 0;
@@ -4561,24 +4579,6 @@ character.yijiang={
 				threaten:1.6,
 			}
 		},
-		qice2:{
-			filterCard:true,
-			selectCard:-1,
-			audio:2,
-			popname:true
-		},
-		qice3:{
-			trigger:{player:'useCardBefore'},
-			forced:true,
-			popup:false,
-			filter:function(event,player){
-				return event.skill=='qice2';
-			},
-			content:function(){
-				player.getStat('skill').qice++;
-			}
-		},
-		qice4:{},
 		zhiyu:{
 			audio:2,
 			trigger:{player:'damageEnd'},
@@ -5834,7 +5834,7 @@ character.yijiang={
 		xuanfeng:'旋风',
 		zhiyu:'智愚',
 		qice:'奇策',
-		qice2:'奇策',
+		qice_backup:'奇策',
 		jiangchi:'将弛',
 		jiangchi_less:'少摸一张',
 		jiangchi_more:'多摸一张',

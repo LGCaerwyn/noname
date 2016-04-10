@@ -1,15 +1,11 @@
 window.config={
 	forbidai:['zuoci','caiwenji'],
-	forbidsingle:['menghuo','huanggai','machao','pangde','yanwen','xiahoudun','xuzhu','luxun',
-	'xuhuang','yujin','xiaoqiao','daqiao','zhangjiao','zhangbao'],
-	forbidall:['xiahouyuan','huangzhong','weiyan','dianwei','zhangjiao'],
-	forbidpack:{
-		refresh:['caocao','simayi','guanyu','zhangfei','zhaoyun','ganning','lvmeng','lvbu','gongsunzan']
-	},
+	forbidall:['xiahouyuan','huangzhong','weiyan','dianwei','zhangjiao',
+	'caocao','simayi','guanyu','zhangfei','zhaoyun','ganning','lvmeng','lvbu','gongsunzan'],
 	forbidversus:['swd_kangnalishi'],
-	forbidstone:['zhugedan','pal_xuanxiao','hs_malfurion','lusu','chenlin',
-	'gjqt_bailitusu','yuanshao','swd_anka','swd_nicole','daqiao','re_daqiao',
-	'zhuran','huatuo','swd_tuwei','hs_guldan','wangyi','caoang','swd_guyue',
+	forbidstone:['zhugedan','pal_xuanxiao','hs_malfurion','lusu','chenlin','hs_siwangzhiyi',
+	'gjqt_bailitusu','yuanshao','swd_anka','swd_nicole','daqiao','re_daqiao','hs_xuanzhuanjijia',
+	'zhuran','huatuo','swd_tuwei','hs_guldan','wangyi','caoang','swd_guyue','swd_rongshuang',
 	'swd_jiangziya','guojia','re_guojia','shen_caocao','swd_qiner','caopi','hs_yngvar',
 	'gjqt_aruan','swd_hanluo','hs_anduin','swd_huanglei','yxs_luzhishen','swd_muyun'],
 	forbidchess:['hetaihou','swd_kangnalishi'],
@@ -17,7 +13,7 @@ window.config={
 	forbiddouble:['zhugedan','swd_kangnalishi','dongzhuo','wutugu','jg_simayi','hs_siwangzhiyi','hs_ronghejuren','hs_shanlingjuren'],
 	layoutfixed:['chess'],
 	all:{
-		mode:['identity','guozhan','versus','boss','chess','stone'],
+		stockmode:['identity','guozhan','versus','boss','chess','stone','connect'],
 		layout:['default','newlayout'],
 		theme:['woodden','music','simple'],
 		card_font:['xiaozhuan','huangcao','caoshu','xingshu'],
@@ -28,8 +24,7 @@ window.config={
 		'september_bg','xueji_bg','yinxiang_bg','chunhui_bg',
 		'grass_bg','huangtian_bg'],
 		image_background_filter:['default','blur','gray','sepia','invert','saturate','contrast','hue','brightness'],
-		background_music:['music_default','music_diaochan','music_shezhan',
-			'music_danji','music_random','music_off']
+		background_music:['music_default','music_diaochan','music_shezhan','music_danji','music_random','music_off']
 	},
 	translate:{
 		character_play_config:'技能卡牌',
@@ -139,8 +134,6 @@ window.config={
 
 		config_menu_config:'选项菜单',
 		show_playerids_config:'显示身份按钮',
-		bottom_line_config:'指示线置底',
-		line_dash_config:'虚线指示线',
 		show_replay_config:'显示重来按钮',
 		show_pause_config:'显示暂停按钮',
 		show_wuxie_config:'显示不询问无懈',
@@ -188,6 +181,8 @@ window.config={
 	volumn_background:8,
 	volumn_audio:8,
 
+	connect_avatar:'caocao',
+	connect_nickname:'无名玩家',
 	config_menu:true,
 	auto_popped_config:true,
 	auto_popped_history:false,
@@ -209,6 +204,10 @@ window.config={
 	hiddenModePack:[],
 	hiddenCharacterPack:[],
 	hiddenCardPack:[],
+	hiddenPlayPack:[],
+	favouriteCharacter:[],
+	recentCharacter:[],
+	recentIP:[],
 
 	theme:'woodden',
 	layout:'mobile',
@@ -227,6 +226,7 @@ window.config={
 	show_volumn:true,
 	show_cardpile:true,
 	only_fullskin:true,
+	show_connect:true,
 	show_wuxie:false,
 	show_wuxie_self:true,
 	show_stat:true,
@@ -250,7 +250,6 @@ window.config={
 	modeconfig:false,
 	gameconfig:false,
 	appearence:false,
-	target_shake:true,
 	video:'20',
 	coin:0,
 
@@ -259,8 +258,9 @@ window.config={
 	sort:'type_sort',
 
 	cards:['standard','ex','extra','refresh'],
-	characters:['standard','shenhua','refresh','yijiang'],
+	characters:['standard','shenhua','refresh','sp','yijiang'],
 	plays:[],
+	extensions:[],
 	banned:[],
 	bannedcards:[],
 	bannedpile:{},
@@ -323,19 +323,24 @@ window.config={
 	forbid:[
 		['huashen'],
 		['lianying','rende'],
+		['lianying','anxian'],
 		['lianying','yinguo'],
 		['lianying','qingjian'],
 		['boss_juejing','rende'],
+		['boss_juejing','anxian'],
 		['boss_juejing','yinguo'],
 		['boss_juejing','qingjian'],
 		['shangshi','rende'],
+		['shangshi','anxian'],
 		['shangshi','yinguo'],
 		['shangshi','qingjian'],
 		['rende','relianying'],
+		['anxian','relianying'],
 		['yinguo','relianying'],
 		['shenxing','relianying'],
 		['qingjian','relianying'],
 		['rende','yuling'],
+		['anxian','yuling'],
 		['yinguo','yuling'],
 		['qingjian','yuling'],
 		['qingnang','yiji'],
@@ -348,7 +353,7 @@ window.config={
 		['tuntian','huanshi'],
 		// ['tuntian','guicai'],
 		// ['jiang','chongzhen'],
-		['fenji','yuling'],
+		// ['fenji','yuling'],
 		['jiushi','guixin'],
 		// ['jiushi','jushou'],
 		// ['jiushi','kuiwei'],
@@ -360,3 +365,5 @@ window.character={};
 window.play={};
 window.background={};
 window.music={};
+window.font={};
+window.theme={};

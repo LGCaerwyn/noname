@@ -2,12 +2,10 @@ character.pack={
     standard:'标准',
     shenhua:'神话再临',
     refresh:'界限突破',
-    extra:'神将',
-    sp:'SP',
-    guozhan:'国战',
     yijiang:'一将成名',
-    // jiange:'守卫剑阁',
-    // zhuogui:'捉鬼驱邪',
+    sp:'SP',
+    extra:'神将',
+    guozhan:'国战',
     diy:'DIY',
     yxs:'英雄杀',
     hearth:'炉石传说',
@@ -25,9 +23,7 @@ card.pack={
     guozhan:'国战',
     mingzhong:'忠胆英杰',
     zhenfa:'阵法',
-    qimou:'奇谋',
-    yibao:'异宝',
-    shenbing:'神兵',
+    yunchou:'运筹帷幄',
     swd:'轩辕剑',
     shenqi:'上古神器',
     hearth:'炉石传说',
@@ -47,11 +43,13 @@ mode.pack={
     boss:'挑战',
     chess:'战棋',
     stone:'炉石',
+    connect:'联机',
 };
 background.pack={
     zhulian_bg:'璧合',
     zhulin_bg:'竹林',
     shengshi_bg:'盛世',
+    xueji_bg:'雪霁',
     yinxiang_bg:'印象',
     huangtian_bg:'黄天',
 };
@@ -59,4 +57,14 @@ music.pack={
     music_diaochan:'貂蝉',
     music_shezhan:'舌战',
     music_danji:'单骑',
+};
+font.pack={
+    xiaozhuan:'小篆',
+    xinwei:'新魏',
+    huangcao:'黄草',
+};
+theme.pack={
+    woodden:'木纹',
+    music:'音乐',
+    simple:'简约',
 }

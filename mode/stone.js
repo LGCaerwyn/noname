@@ -1,5 +1,545 @@
 'use strict';
 mode.stone={
+	start:function(){
+		"step 0"
+		lib.init.css(lib.assetURL+'layout/mode/','stone');
+		_status.mode=get.config('stone_mode');
+		game.initStone();
+		var playback=localStorage.getItem(lib.configprefix+'playback');
+
+		if(!playback&&_status.mode=='deck'){
+			(function(){
+				ui.deckBuilder=ui.create.div('.popup-container#deck-builder',function(){
+					if(careerList.classList.contains('shown')){
+						careerList.classList.remove('shown');
+						newDeck.classList.remove('active');
+					}
+					else if(!cardDialog.classList.contains('shown')){
+						this.classList.remove('shown');
+						this.timeout=setTimeout(function(){
+							ui.deckBuilder.remove();
+						},500);
+						ui.arena.style.top='';
+						ui.arena.style.transform='';
+						ui.arena.style.opacity='';
+						ui.system.style.opacity='';
+						ui.auto.show();
+						ui.pause.show();
+					}
+				});
+				var clickNode=function(){
+					cardDialog.classList.add('shown');
+					controls.classList.add('shown');
+					var name='未命名';
+					for(var i=1;;i++){
+						if(!lib.storage.deckList[name+i]){
+							break;
+						}
+					}
+					cardDialog.editing={
+						name:name+i,
+						content:{
+							career:this.firstChild.dataset.career,
+							deck:[]
+						},
+					}
+					rename.innerHTML=name+i;
+					newDeck.innerHTML='确认编辑';
+					newDeck.classList.add('active');
+					careerList.classList.remove('shown');
+					listContainer.style.transform='translateX(200px)';
+					deckContainer.innerHTML='';
+					deckContainer.classList.add('shown');
+					updateCardDialog();
+				}
+				var careerList=ui.create.div('.shadowed.career',ui.deckBuilder);
+				for(var i=0;i<lib.careerList.length;i++){
+					var node=ui.create.div(careerList,clickNode);
+					ui.create.div('.menubutton.round',node).dataset.career=lib.careerList[i];
+					ui.create.div('.text',lib.translate[lib.careerList[i]],node);
+				}
+				var controls=ui.create.div('.controls',ui.deckBuilder);
+				var cardCount=ui.create.div('.card-count',controls);
+				ui.create.div('.menubutton.large','删除',controls,function(e){
+					if(this.innerHTML=='删除'){
+						this.innerHTML='确定';
+						var that=this;
+						setTimeout(function(){
+							that.innerHTML='删除';
+						},1000);
+					}
+					else{
+						cardDialog.classList.remove('shown');
+						controls.classList.remove('shown');
+						newDeck.innerHTML='新建卡组';
+						newDeck.classList.remove('active');
+						var editing=cardDialog.editing;
+						if(editing){
+							if(editing.origin){
+								delete lib.storage.deckList[editing.origin];
+								for(var i=0;i<listContainer.childElementCount;i++){
+									if(listContainer.childNodes[i].name==editing.origin){
+										listContainer.childNodes[i].remove();break;
+									}
+								}
+							}
+						}
+						game.save('deckList',lib.storage.deckList);
+						listContainer.style.transform='';
+						deckContainer.classList.remove('shown');
+						updateCardDialog();
+					}
+					e.stopPropagation();
+				});
+				var rename=ui.create.div('.menubutton.large','重命名',controls);
+				rename.contentEditable=true;
+				rename.onfocus=function(){
+					var range = document.createRange();
+					range.selectNodeContents(this);
+					var sel = window.getSelection();
+					sel.removeAllRanges();
+					sel.addRange(range);
+				};
+				rename.onblur=function(){
+					if(cardDialog.editing){
+						if(!lib.storage.deckList[this.innerHTML]){
+							cardDialog.editing.name=this.innerHTML;
+						}
+						else{
+							this.innerHTML=cardDialog.editing.name;
+						}
+					}
+					var sel = window.getSelection();
+					sel.removeAllRanges();
+				};
+				rename.onkeydown=function(e){
+					if(e.keyCode==13){
+						e.preventDefault();
+						e.stopPropagation();
+						rename.blur();
+					}
+				};
+				var removeLine=function() {
+					rename.innerHTML=rename.innerHTML.replace(/\n|<br>/g,'');
+				};
+				var observer = new MutationObserver(removeLine);
+				observer.observe(rename,{characterData:true,subtree:true});
+				rename.addEventListener('keyup',removeLine);
+
+				var cardDialog=ui.create.cardDialog(true,function(name){
+					if(lib.card[name].stonehidden) return true;
+					var type=lib.card[name].type;
+					return type!='stonecard'&&type!='stonecharacter';
+				},{seperate:function(list){
+					var nl=[],ns=[];
+					var career={};
+					var careerspell={};
+					for(var i=0;i<lib.careerList.length;i++){
+						career[lib.careerList[i]]=[];
+						careerspell[lib.careerList[i]]=[];
+					}
+					var result={}
+					for(var i=0;i<list.length;i++){
+						if(lib.card[list[i][2]].type=='stonecard'){
+							if(lib.card[list[i][2]].career&&lib.careerList.contains(lib.card[list[i][2]].career)){
+								careerspell[lib.card[list[i][2]].career].push(list[i]);
+							}
+							else{
+								ns.push(list[i]);
+							}
+						}
+						else{
+							if(lib.card[list[i][2]].career&&lib.careerList.contains(lib.card[list[i][2]].career)){
+								career[lib.card[list[i][2]].career].push(list[i]);
+							}
+							else{
+								nl.push(list[i]);
+							}
+						}
+					}
+					for(var i=0;i<lib.careerList.length;i++){
+						result['法术·'+get.translation(lib.careerList[i])+'_link:'+lib.careerList[i]]=careerspell[lib.careerList[i]];
+						result['随从·'+get.translation(lib.careerList[i])+'_link:'+lib.careerList[i]]=career[lib.careerList[i]];
+					}
+					result['法术·中立']=ns;
+					result['随从·中立']=nl;
+					return result;
+				}});
+				for(var i=0;i<cardDialog.buttons.length;i++){
+					if(cardDialog.buttons[i].node.info.innerHTML.indexOf('随从')!=-1){
+						var buttonName=cardDialog.buttons[i].link[2];
+						buttonName=buttonName.slice(0,buttonName.indexOf('_stonecharacter'));
+						buttonName=lib.character[buttonName];
+						cardDialog.buttons[i].node.info.innerHTML=buttonName[5][1]+'/'+buttonName[2];
+					}
+					if(lib.config.touchscreen){
+						lib.setLongPress(cardDialog.buttons[i],ui.click.intro);
+					}
+					else{
+						if(lib.config.hover_all){
+							lib.setHover(cardDialog.buttons[i],ui.click.hoverplayer);
+						}
+						if(lib.config.right_info){
+							cardDialog.buttons[i].oncontextmenu=ui.click.rightplayer;
+						}
+					}
+				}
+				var updateCardDialog=function(button){
+					if(!deckContainer.classList.contains('shown')){
+						for(var i=0;i<cardDialog.buttons.length;i++){
+							cardDialog.buttons[i].classList.remove('unselectable');
+						}
+						for(var i=0;i<cardDialog.content.childElementCount;i++){
+							cardDialog.content.childNodes[i].classList.remove('nodisplay');
+						}
+						return;
+					}
+					if(deckContainer.childElementCount>=30){
+						for(var i=0;i<cardDialog.buttons.length;i++){
+							cardDialog.buttons[i].classList.add('unselectable');
+						}
+					}
+					else{
+						var nummap={};
+						for(var i=0;i<deckContainer.childElementCount;i++){
+							var name=deckContainer.childNodes[i].name;
+							if(!nummap[name]){
+								nummap[name]=1;
+							}
+							else{
+								nummap[name]++;
+							}
+						}
+						var list=[];
+						for(var i in nummap){
+							if(nummap[i]>=2){
+								list.push(i);
+							}
+						}
+						for(var i=0;i<cardDialog.buttons.length;i++){
+							if(list.contains(cardDialog.buttons[i].link[2])){
+								cardDialog.buttons[i].classList.add('unselectable');
+							}
+							else{
+								cardDialog.buttons[i].classList.remove('unselectable');
+							}
+						}
+					}
+					var career=cardDialog.editing.content.career;
+					for(var i=0;i<cardDialog.content.childElementCount;i++){
+						var currentNode=cardDialog.content.childNodes[i];
+						if(currentNode.link){
+							if(currentNode.link==career){
+								currentNode.classList.remove('nodisplay');
+								currentNode.nextSibling.classList.remove('nodisplay');
+							}
+							else{
+								currentNode.classList.add('nodisplay');
+								currentNode.nextSibling.classList.add('nodisplay');
+							}
+						}
+					}
+					cardCount.innerHTML=deckContainer.childElementCount+'/30';
+				};
+				var clickCard=function(){
+					this.remove();
+					updateCardDialog();
+				};
+				var clickButton=function(){
+					if(!deckContainer.classList.contains('shown')) return;
+					if(!this.classList.contains('unselectable')){
+						var card=ui.create.card(null,'noclick').init(this.link).listen(clickCard);
+						deckContainer.insertBefore(card,deckContainer.firstChild);
+						updateCardDialog();
+					}
+				}
+				for(var i=0;i<cardDialog.buttons.length;i++){
+					cardDialog.buttons[i].listen(clickButton);
+				}
+				cardDialog.classList.add('fullheight');
+				cardDialog.classList.add('scroll1');
+				cardDialog.classList.add('scroll2');
+				cardDialog.classList.add('fixed');
+				cardDialog.listen(function(e){
+					e.stopPropagation();
+				});
+
+				ui.deckBuilder.appendChild(cardDialog);
+				var deckList=ui.create.div('.shadowed.list',ui.deckBuilder,function(e){
+					e.stopPropagation();
+					if(careerList.classList.contains('shown')){
+						careerList.classList.remove('shown');
+						newDeck.classList.remove('active');
+					}
+				});
+				var editDeck=function(){
+					if(!cardDialog.classList.contains('shown')){
+						cardDialog.classList.add('shown');
+						controls.classList.add('shown');
+						var info=lib.storage.deckList[this.name];
+						cardDialog.editing={
+							origin:this.name,
+							name:this.name,
+							content:{
+								career:info.career,
+								deck:info.deck
+							},
+						}
+						rename.innerHTML=this.name;
+						newDeck.innerHTML='确认编辑';
+						newDeck.classList.add('active');
+						careerList.classList.remove('shown');
+						listContainer.style.transform='translateX(200px)';
+						deckContainer.innerHTML='';
+						for(var i=0;i<info.deck.length;i++){
+							ui.create.card(deckContainer,'noclick').init(['',get.translation(lib.card[info.deck[i]].type),info.deck[i]]).listen(clickCard);
+						}
+						deckContainer.classList.add('shown');
+						updateCardDialog();
+					}
+				};
+				var newDeck=ui.create.div('.menubutton.large.create','新建卡组',deckList,function(e){
+					if(this.innerHTML=='新建卡组'){
+						this.classList.toggle('active');
+						if(this.classList.contains('active')){
+							careerList.classList.add('shown');
+						}
+						else{
+							careerList.classList.remove('shown');
+						}
+					}
+					else{
+						cardDialog.classList.remove('shown');
+						controls.classList.remove('shown');
+						this.innerHTML='新建卡组';
+						this.classList.remove('active');
+						var editing=cardDialog.editing;
+						if(editing){
+							editing.content.deck.length=0;
+							for(var i=0;i<deckContainer.childElementCount;i++){
+								editing.content.deck.push(deckContainer.childNodes[i].name);
+							}
+							editing.content.deck.sort(function(a,b){
+								if(a>b) return 1;
+								if(a<b) return -1;
+								return 0;
+							});
+							if(editing.origin){
+								for(var i=0;i<listContainer.childElementCount;i++){
+									if(listContainer.childNodes[i].name==editing.origin){
+										listContainer.childNodes[i].name=editing.name;
+										listContainer.childNodes[i].firstChild.innerHTML=editing.name;
+										break;
+									}
+								}
+								delete lib.storage.deckList[editing.origin];
+							}
+							else if(!lib.storage.deckList[editing.name]){
+								var deckitem=ui.create.div('.deckitem.shadowed','<span>'+editing.name+'</span>',
+									listContainer,editDeck);
+								ui.create.div('.menubutton.round',deckitem).dataset.career=editing.content.career;
+								deckitem.name=editing.name;
+							}
+							lib.storage.deckList[editing.name]=editing.content;
+						}
+						game.save('deckList',lib.storage.deckList);
+						listContainer.style.transform='';
+						deckContainer.classList.remove('shown');
+						updateCardDialog();
+					}
+					e.stopPropagation();
+				});
+				var listContainer=ui.create.div('.list-container',deckList);
+				for(var i in lib.storage.deckList){
+					var deckitem=ui.create.div('.deckitem.shadowed','<span>'+i+'</span>',
+						listContainer,editDeck);
+					ui.create.div('.menubutton.round',deckitem).dataset.career=lib.storage.deckList[i].career;
+					deckitem.name=i;
+				}
+				var deckContainer=ui.create.div('.list-container.deck',deckList);
+			}());
+
+			ui.deckcontrol=ui.create.system('卡组管理',function(){
+				// if(lib.config.low_performance){
+				// 	ui.arena.style.transform='translateY('+ui.window.offsetHeight+'px)';
+				// }
+				// else{
+				// 	ui.arena.style.top='100%';
+				// }
+				// ui.arena.style.transform='scale(0.6)';
+				ui.arena.style.opacity=0;
+				ui.system.style.opacity=0;
+				ui.window.appendChild(ui.deckBuilder);
+				if(ui.deckBuilder.timeout){
+					clearTimeout(ui.deckBuilder.timeout);
+					delete ui.deckBuilder.timeout;
+				}
+				ui.refresh(ui.deckBuilder);
+				ui.deckBuilder.classList.add('shown');
+				ui.auto.hide();
+				ui.pause.hide();
+			},true);
+
+		}
+
+		if(playback){
+			ui.create.me();
+			ui.arena.style.display='none';
+			ui.system.style.display='none';
+			_status.playback=playback;
+			localStorage.removeItem(lib.configprefix+'playback');
+			var store=lib.db.transaction(['video'],'readwrite').objectStore('video');
+			store.get(parseInt(playback)).onsuccess=function(e){
+				if(e.target.result){
+					game.playVideoContent(e.target.result.video);
+				}
+				else{
+					alert('播放失败：找不到录像');
+					game.reload();
+				}
+			}
+			event.finish();
+		}
+		else{
+			game.prepareArena(2);
+			game.delay();
+		}
+		ui.arena.classList.add('stone');
+		"step 1"
+		for(var i=0;i<game.players.length;i++){
+			game.players[i].classList.add('noidentity');
+		}
+		game.enemy=game.me.next;
+		if(lib.storage.test){
+			lib.config.game_speed='vfast';
+			_status.auto=true;
+			ui.auto.classList.add('glow');
+		}
+		game.chooseCharacter();
+		"step 2"
+		if(_status.mode=='deck'){
+			_status.deckButton=ui.create.system('卡组',null,true);
+			lib.setPopped(_status.deckButton,function(){
+				var uiintro=ui.create.dialog('hidden');
+				uiintro.listen(function(e){
+					e.stopPropagation();
+				});
+				uiintro.add('剩余 <span style="font-family:'+'xinwei'+'">'+game.me.deckCards.length);
+				uiintro.addSmall([game.me.deckCards,'card']);
+				return uiintro;
+			},220);
+			if(get.config('skill_bar')){
+				_status.rageEnabled=true;
+
+				ui.friendBar=ui.create.div('.skillbar.right.shadowed.playerbg',ui.arena);
+				ui.enemyBar=ui.create.div('.skillbar.left.shadowed.playerbg',ui.arena);
+				// ui.friendBar.dataset.nature='metal';
+				// ui.enemyBar.dataset.nature='fire';
+				ui.create.div('.skillbarshadow',ui.friendBar);
+				ui.create.div('.skillbarshadow',ui.enemyBar);
+				ui.create.div('.skillbarfill',ui.friendBar);
+				ui.create.div('.skillbarfill',ui.enemyBar);
+				ui.friendBar.fillnode=ui.create.div(ui.friendBar.lastChild);
+				ui.enemyBar.fillnode=ui.create.div(ui.enemyBar.lastChild);
+				// ui.friendBar.popnode=ui.create.div('.skillbartext',ui.friendBar);
+				// ui.enemyBar.popnode=ui.create.div('.skillbartext',ui.enemyBar);
+				_status.friendRage=0;
+				_status.enemyRage=0;
+
+				if(lib.config.touchscreen){
+					lib.setLongPress(ui.friendBar,ui.click.intro);
+					lib.setLongPress(ui.enemyBar,ui.click.intro);
+				}
+				else{
+					if(lib.config.hover_all){
+						lib.setHover(ui.friendBar,ui.click.hoverplayer);
+						lib.setHover(ui.enemyBar,ui.click.hoverplayer);
+					}
+					if(lib.config.right_info){
+						ui.friendBar.oncontextmenu=ui.click.rightplayer;
+						ui.enemyBar.oncontextmenu=ui.click.rightplayer;
+					}
+				}
+			}
+		}
+		_status.friendCount=ui.create.system('',null,true);
+		_status.enemyCount=ui.create.system('',null,true);
+		game.updateStatusCount();
+		lib.setPopped(_status.friendCount,function(){
+			var uiintro=ui.create.dialog('hidden');
+
+			if(_status.deadfriend.length){
+				uiintro.add('已阵亡');
+				uiintro.add([_status.deadfriend,'player']);
+			}
+
+			uiintro.add('未上场');
+			if(_status.mylist.length){
+				uiintro.add([_status.mylist,'character']);
+			}
+			else{
+				uiintro.add('（无）')
+			}
+
+			return uiintro;
+		});
+		lib.setPopped(_status.enemyCount,function(){
+			if(_status.deadenemy.length){
+				var uiintro=ui.create.dialog('hidden');
+				uiintro.add('已阵亡');
+				uiintro.add([_status.deadenemy,'player']);
+				return uiintro;
+			}
+		});
+
+		game.me.side=Math.random()<0.5;
+		game.enemy.side=!game.me.side;
+
+		var players=get.players(lib.sort.position);
+		var info=[];
+		for(var i=0;i<players.length;i++){
+			info.push({
+				name:players[i].name,
+				name2:players[i].name2,
+				count:players[i].actcount
+			});
+		}
+		_status.videoInited=true,
+		game.addVideo('init',null,info);
+
+		event.trigger('gameStart');
+		if(_status.mode=='deck'){
+			game.gameDraw(game.me,3);
+			game.me.drawDeck(1,false);
+			game.me.next.drawDeck(1,false);
+		}
+		else{
+			game.gameDraw(game.me);
+		}
+		"step 3"
+		game.me.chooseBool('是否置换手牌？');
+		"step 4"
+		if(result.bool){
+			var hs=game.me.get('h');
+			for(var i=0;i<hs.length;i++){
+				ui.discardPile.appendChild(hs[i]);
+			}
+			if(_status.mode=='deck'){
+				game.me.drawDeck(1,false);
+				game.me.directgain(get.cards(3));
+			}
+			else{
+				game.me.directgain(get.cards(4));
+			}
+		}
+		"step 5"
+		if(game.me.side){
+			game.stoneLoop(game.me);
+		}
+		else{
+			game.stoneLoop(game.enemy);
+		}
+	},
 	element:{
 		stonecharacter:{
 			type:'stonecharacter',
@@ -58,7 +598,7 @@ mode.stone={
 						player.node.actcount=ui.create.div('.actcount.hp',player);
 					}
 					if(typeof player.actcount!=='number'){
-						player.actcount=2;
+						player.actcount=0;
 					}
 					player.actused=0;
 					if(!player.actcharacterlist){
@@ -618,7 +1158,7 @@ mode.stone={
 			stone_qiezei:['male','qun',2,['rogue_touqie'],['minskin','stone'],[2,2,'rogue']],
 			stone_heitieairen:['male','qun',2,['rogue_qiancang'],['minskin','stone'],[4,3,'rogue']],
 			stone_tegong:['male','qun',2,['rogue_touxi'],['minskin','stone'],[3,3,'rogue']],
-			stone_haidaotoumu:['male','qun',2,['rogue_zhaomu'],['minskin','stone'],[3,2,'rogue']],
+			stone_haidaotoumu:['male','qun',2,['rogue_zhaomu'],['minskin','stone'],[2,2,'rogue']],
 			stone_haidao:['male','qun',1,[],['minskin','stone','stonehidden'],[1,2,'rogue']],
 			stone_cike:['male','qun',1,['rogue_cisha','stone_qianxing'],['minskin','stone'],[1,1,'rogue']],
 			stone_duyanhaidao:['male','qun',2,['rogue_duxing'],['minskin','stone'],[3,4,'rogue']],
@@ -885,554 +1425,6 @@ mode.stone={
 			_status.deadenemy=[];
 			game.additionaldead=[];
 		},
-		start:function(){
-			var next=game.createEvent('game',false);
-			next.content=function(){
-				"step 0"
-				if(lib.db&&!_status.characterLoaded){
-					_status.waitingForCharacters=true;
-					game.pause();
-				}
-				"step 1"
-				lib.init.css('layout/mode/','stone');
-				_status.mode=get.config('stone_mode');
-				game.initStone();
-				var playback=localStorage.getItem(lib.configprefix+'playback');
-
-				if(!playback&&_status.mode=='deck'){
-					(function(){
-						ui.deckBuilder=ui.create.div('.popup-container#deck-builder',function(){
-							if(careerList.classList.contains('shown')){
-								careerList.classList.remove('shown');
-								newDeck.classList.remove('active');
-							}
-							else if(!cardDialog.classList.contains('shown')){
-								this.classList.remove('shown');
-								this.timeout=setTimeout(function(){
-									ui.deckBuilder.remove();
-								},500);
-								ui.arena.style.top='';
-								ui.arena.style.transform='';
-								ui.arena.style.opacity='';
-								ui.system.style.opacity='';
-								ui.auto.show();
-								ui.pause.show();
-							}
-						});
-						var clickNode=function(){
-							cardDialog.classList.add('shown');
-							controls.classList.add('shown');
-							var name='未命名';
-							for(var i=1;;i++){
-								if(!lib.storage.deckList[name+i]){
-									break;
-								}
-							}
-							cardDialog.editing={
-								name:name+i,
-								content:{
-									career:this.firstChild.dataset.career,
-									deck:[]
-								},
-							}
-							rename.innerHTML=name+i;
-							newDeck.innerHTML='确认编辑';
-							newDeck.classList.add('active');
-							careerList.classList.remove('shown');
-							listContainer.style.transform='translateX(200px)';
-							deckContainer.innerHTML='';
-							deckContainer.classList.add('shown');
-							updateCardDialog();
-						}
-						var careerList=ui.create.div('.shadowed.career',ui.deckBuilder);
-						for(var i=0;i<lib.careerList.length;i++){
-							var node=ui.create.div(careerList,clickNode);
-							ui.create.div('.menubutton.round',node).dataset.career=lib.careerList[i];
-							ui.create.div('.text',lib.translate[lib.careerList[i]],node);
-						}
-						var controls=ui.create.div('.controls',ui.deckBuilder);
-						var cardCount=ui.create.div('.card-count',controls);
-						ui.create.div('.menubutton.large','删除',controls,function(e){
-							if(this.innerHTML=='删除'){
-								this.innerHTML='确定';
-								var that=this;
-								setTimeout(function(){
-									that.innerHTML='删除';
-								},1000);
-							}
-							else{
-								cardDialog.classList.remove('shown');
-								controls.classList.remove('shown');
-								newDeck.innerHTML='新建卡组';
-								newDeck.classList.remove('active');
-								var editing=cardDialog.editing;
-								if(editing){
-									if(editing.origin){
-										delete lib.storage.deckList[editing.origin];
-										for(var i=0;i<listContainer.childElementCount;i++){
-											if(listContainer.childNodes[i].name==editing.origin){
-												listContainer.childNodes[i].remove();break;
-											}
-										}
-									}
-								}
-								game.save('deckList',lib.storage.deckList);
-								listContainer.style.transform='';
-								deckContainer.classList.remove('shown');
-								updateCardDialog();
-							}
-							e.stopPropagation();
-						});
-						var rename=ui.create.div('.menubutton.large','重命名',controls);
-						rename.contentEditable=true;
-						rename.onfocus=function(){
-							var range = document.createRange();
-						    range.selectNodeContents(this);
-						    var sel = window.getSelection();
-						    sel.removeAllRanges();
-						    sel.addRange(range);
-						};
-						rename.onblur=function(){
-							if(cardDialog.editing){
-								if(!lib.storage.deckList[this.innerHTML]){
-									cardDialog.editing.name=this.innerHTML;
-								}
-								else{
-									this.innerHTML=cardDialog.editing.name;
-								}
-							}
-							var sel = window.getSelection();
-						    sel.removeAllRanges();
-						};
-						rename.onkeydown=function(e){
-							if(e.keyCode==13){
-								e.preventDefault();
-								e.stopPropagation();
-								rename.blur();
-							}
-						};
-						var removeLine=function() {
-							rename.innerHTML=rename.innerHTML.replace(/\n|<br>/g,'');
-						};
-						var observer = new MutationObserver(removeLine);
-						observer.observe(rename,{characterData:true,subtree:true});
-						rename.addEventListener('keyup',removeLine);
-
-						var cardDialog=ui.create.cardDialog(true,function(name){
-							if(lib.card[name].stonehidden) return true;
-							var type=lib.card[name].type;
-							return type!='stonecard'&&type!='stonecharacter';
-						},{seperate:function(list){
-							var nl=[],ns=[];
-							var career={};
-							var careerspell={};
-							for(var i=0;i<lib.careerList.length;i++){
-								career[lib.careerList[i]]=[];
-								careerspell[lib.careerList[i]]=[];
-							}
-							var result={}
-							for(var i=0;i<list.length;i++){
-								if(lib.card[list[i][2]].type=='stonecard'){
-									if(lib.card[list[i][2]].career&&lib.careerList.contains(lib.card[list[i][2]].career)){
-										careerspell[lib.card[list[i][2]].career].push(list[i]);
-									}
-									else{
-										ns.push(list[i]);
-									}
-								}
-								else{
-									if(lib.card[list[i][2]].career&&lib.careerList.contains(lib.card[list[i][2]].career)){
-										career[lib.card[list[i][2]].career].push(list[i]);
-									}
-									else{
-										nl.push(list[i]);
-									}
-								}
-							}
-							for(var i=0;i<lib.careerList.length;i++){
-								result['法术·'+get.translation(lib.careerList[i])+'_link:'+lib.careerList[i]]=careerspell[lib.careerList[i]];
-								result['随从·'+get.translation(lib.careerList[i])+'_link:'+lib.careerList[i]]=career[lib.careerList[i]];
-							}
-							result['法术·中立']=ns;
-							result['随从·中立']=nl;
-							return result;
-						}});
-						for(var i=0;i<cardDialog.buttons.length;i++){
-							if(cardDialog.buttons[i].node.info.innerHTML.indexOf('随从')!=-1){
-								var buttonName=cardDialog.buttons[i].link[2];
-								buttonName=buttonName.slice(0,buttonName.indexOf('_stonecharacter'));
-								buttonName=lib.character[buttonName];
-								cardDialog.buttons[i].node.info.innerHTML=buttonName[5][1]+'/'+buttonName[2];
-							}
-							if(lib.config.touchscreen){
-								lib.setLongPress(cardDialog.buttons[i],ui.click.intro);
-							}
-							else{
-								if(lib.config.hover_all){
-									lib.setHover(cardDialog.buttons[i],ui.click.hoverplayer);
-								}
-								if(lib.config.right_info){
-									cardDialog.buttons[i].oncontextmenu=ui.click.rightplayer;
-								}
-							}
-						}
-						var updateCardDialog=function(button){
-							if(!deckContainer.classList.contains('shown')){
-								for(var i=0;i<cardDialog.buttons.length;i++){
-									cardDialog.buttons[i].classList.remove('unselectable');
-								}
-								for(var i=0;i<cardDialog.content.childElementCount;i++){
-									cardDialog.content.childNodes[i].classList.remove('nodisplay');
-								}
-								return;
-							}
-							if(deckContainer.childElementCount>=30){
-								for(var i=0;i<cardDialog.buttons.length;i++){
-									cardDialog.buttons[i].classList.add('unselectable');
-								}
-							}
-							else{
-								var nummap={};
-								for(var i=0;i<deckContainer.childElementCount;i++){
-									var name=deckContainer.childNodes[i].name;
-									if(!nummap[name]){
-										nummap[name]=1;
-									}
-									else{
-										nummap[name]++;
-									}
-								}
-								var list=[];
-								for(var i in nummap){
-									if(nummap[i]>=2){
-										list.push(i);
-									}
-								}
-								for(var i=0;i<cardDialog.buttons.length;i++){
-									if(list.contains(cardDialog.buttons[i].link[2])){
-										cardDialog.buttons[i].classList.add('unselectable');
-									}
-									else{
-										cardDialog.buttons[i].classList.remove('unselectable');
-									}
-								}
-							}
-							var career=cardDialog.editing.content.career;
-							for(var i=0;i<cardDialog.content.childElementCount;i++){
-								var currentNode=cardDialog.content.childNodes[i];
-								if(currentNode.link){
-									if(currentNode.link==career){
-										currentNode.classList.remove('nodisplay');
-										currentNode.nextSibling.classList.remove('nodisplay');
-									}
-									else{
-										currentNode.classList.add('nodisplay');
-										currentNode.nextSibling.classList.add('nodisplay');
-									}
-								}
-							}
-							cardCount.innerHTML=deckContainer.childElementCount+'/30';
-						};
-						var clickCard=function(){
-							this.remove();
-							updateCardDialog();
-						};
-						var clickButton=function(){
-							if(!deckContainer.classList.contains('shown')) return;
-							if(!this.classList.contains('unselectable')){
-								var card=ui.create.card(null,'noclick').init(this.link).listen(clickCard);
-								deckContainer.insertBefore(card,deckContainer.firstChild);
-								updateCardDialog();
-							}
-						}
-						for(var i=0;i<cardDialog.buttons.length;i++){
-							cardDialog.buttons[i].listen(clickButton);
-						}
-						cardDialog.classList.add('fullheight');
-						cardDialog.classList.add('scroll1');
-						cardDialog.classList.add('scroll2');
-						cardDialog.classList.add('fixed');
-						cardDialog.listen(function(e){
-							e.stopPropagation();
-						});
-
-						ui.deckBuilder.appendChild(cardDialog);
-						var deckList=ui.create.div('.shadowed.list',ui.deckBuilder,function(e){
-							e.stopPropagation();
-							if(careerList.classList.contains('shown')){
-								careerList.classList.remove('shown');
-								newDeck.classList.remove('active');
-							}
-						});
-						var editDeck=function(){
-							if(!cardDialog.classList.contains('shown')){
-								cardDialog.classList.add('shown');
-								controls.classList.add('shown');
-								var info=lib.storage.deckList[this.name];
-								cardDialog.editing={
-									origin:this.name,
-									name:this.name,
-									content:{
-										career:info.career,
-										deck:info.deck
-									},
-								}
-								rename.innerHTML=this.name;
-								newDeck.innerHTML='确认编辑';
-								newDeck.classList.add('active');
-								careerList.classList.remove('shown');
-								listContainer.style.transform='translateX(200px)';
-								deckContainer.innerHTML='';
-								for(var i=0;i<info.deck.length;i++){
-									ui.create.card(deckContainer,'noclick').init(['',get.translation(lib.card[info.deck[i]].type),info.deck[i]]).listen(clickCard);
-								}
-								deckContainer.classList.add('shown');
-								updateCardDialog();
-							}
-						};
-						var newDeck=ui.create.div('.menubutton.large.create','新建卡组',deckList,function(e){
-							if(this.innerHTML=='新建卡组'){
-								this.classList.toggle('active');
-								if(this.classList.contains('active')){
-									careerList.classList.add('shown');
-								}
-								else{
-									careerList.classList.remove('shown');
-								}
-							}
-							else{
-								cardDialog.classList.remove('shown');
-								controls.classList.remove('shown');
-								this.innerHTML='新建卡组';
-								this.classList.remove('active');
-								var editing=cardDialog.editing;
-								if(editing){
-									editing.content.deck.length=0;
-									for(var i=0;i<deckContainer.childElementCount;i++){
-										editing.content.deck.push(deckContainer.childNodes[i].name);
-									}
-									editing.content.deck.sort(function(a,b){
-										if(a>b) return 1;
-										if(a<b) return -1;
-										return 0;
-									});
-									if(editing.origin){
-										for(var i=0;i<listContainer.childElementCount;i++){
-											if(listContainer.childNodes[i].name==editing.origin){
-												listContainer.childNodes[i].name=editing.name;
-												listContainer.childNodes[i].firstChild.innerHTML=editing.name;
-												break;
-											}
-										}
-										delete lib.storage.deckList[editing.origin];
-									}
-									else if(!lib.storage.deckList[editing.name]){
-										var deckitem=ui.create.div('.deckitem.shadowed','<span>'+editing.name+'</span>',
-											listContainer,editDeck);
-										ui.create.div('.menubutton.round',deckitem).dataset.career=editing.content.career;
-										deckitem.name=editing.name;
-									}
-									lib.storage.deckList[editing.name]=editing.content;
-								}
-								game.save('deckList',lib.storage.deckList);
-								listContainer.style.transform='';
-								deckContainer.classList.remove('shown');
-								updateCardDialog();
-							}
-							e.stopPropagation();
-						});
-						var listContainer=ui.create.div('.list-container',deckList);
-						for(var i in lib.storage.deckList){
-							var deckitem=ui.create.div('.deckitem.shadowed','<span>'+i+'</span>',
-								listContainer,editDeck);
-							ui.create.div('.menubutton.round',deckitem).dataset.career=lib.storage.deckList[i].career;
-							deckitem.name=i;
-						}
-						var deckContainer=ui.create.div('.list-container.deck',deckList);
-					}());
-
-					ui.deckcontrol=ui.create.system('卡组管理',function(){
-						// if(lib.config.low_performance){
-						// 	ui.arena.style.transform='translateY('+ui.window.offsetHeight+'px)';
-						// }
-						// else{
-						// 	ui.arena.style.top='100%';
-						// }
-						// ui.arena.style.transform='scale(0.6)';
-						ui.arena.style.opacity=0;
-						ui.system.style.opacity=0;
-						ui.window.appendChild(ui.deckBuilder);
-						if(ui.deckBuilder.timeout){
-							clearTimeout(ui.deckBuilder.timeout);
-							delete ui.deckBuilder.timeout;
-						}
-						ui.refresh(ui.deckBuilder);
-						ui.deckBuilder.classList.add('shown');
-						ui.auto.hide();
-						ui.pause.hide();
-					},true);
-
-				}
-
-				if(playback){
-					ui.create.me();
-					ui.arena.style.display='none';
-					ui.system.style.display='none';
-					_status.playback=playback;
-					localStorage.removeItem(lib.configprefix+'playback');
-					var store=lib.db.transaction(['video'],'readwrite').objectStore('video');
-					store.get(parseInt(playback)).onsuccess=function(e){
-						if(e.target.result){
-							game.playVideoContent(e.target.result.video);
-						}
-						else{
-							alert('播放失败：找不到录像');
-							game.reload();
-						}
-					}
-					event.finish();
-				}
-				else{
-					game.prepareArena(2);
-					game.delay();
-				}
-				ui.arena.classList.add('stone');
-				"step 2"
-				for(var i=0;i<game.players.length;i++){
-					game.players[i].classList.add('noidentity');
-				}
-				game.enemy=game.me.next;
-				if(lib.storage.test){
-					lib.config.game_speed='vfast';
-					_status.auto=true;
-					ui.auto.classList.add('glow');
-				}
-				game.chooseCharacter();
-				"step 3"
-				if(_status.mode=='deck'){
-					_status.deckButton=ui.create.system('卡组',null,true);
-					lib.setPopped(_status.deckButton,function(){
-						var uiintro=ui.create.dialog('hidden');
-						uiintro.listen(function(e){
-							e.stopPropagation();
-						});
-						uiintro.add('剩余 <span style="font-family:'+'xinwei'+'">'+game.me.deckCards.length);
-						uiintro.addSmall([game.me.deckCards,'card']);
-						return uiintro;
-					},220);
-					if(get.config('skill_bar')){
-						_status.rageEnabled=true;
-
-						ui.friendBar=ui.create.div('.skillbar.right.shadowed.playerbg',ui.arena);
-						ui.enemyBar=ui.create.div('.skillbar.left.shadowed.playerbg',ui.arena);
-						// ui.friendBar.dataset.nature='metal';
-						// ui.enemyBar.dataset.nature='fire';
-						ui.create.div('.skillbarshadow',ui.friendBar);
-						ui.create.div('.skillbarshadow',ui.enemyBar);
-						ui.create.div('.skillbarfill',ui.friendBar);
-						ui.create.div('.skillbarfill',ui.enemyBar);
-						ui.friendBar.fillnode=ui.create.div(ui.friendBar.lastChild);
-						ui.enemyBar.fillnode=ui.create.div(ui.enemyBar.lastChild);
-						// ui.friendBar.popnode=ui.create.div('.skillbartext',ui.friendBar);
-						// ui.enemyBar.popnode=ui.create.div('.skillbartext',ui.enemyBar);
-						_status.friendRage=0;
-						_status.enemyRage=0;
-
-						if(lib.config.touchscreen){
-							lib.setLongPress(ui.friendBar,ui.click.intro);
-							lib.setLongPress(ui.enemyBar,ui.click.intro);
-						}
-						else{
-							if(lib.config.hover_all){
-								lib.setHover(ui.friendBar,ui.click.hoverplayer);
-								lib.setHover(ui.enemyBar,ui.click.hoverplayer);
-							}
-							if(lib.config.right_info){
-								ui.friendBar.oncontextmenu=ui.click.rightplayer;
-								ui.enemyBar.oncontextmenu=ui.click.rightplayer;
-							}
-						}
-					}
-				}
-				_status.friendCount=ui.create.system('',null,true);
-				_status.enemyCount=ui.create.system('',null,true);
-				game.updateStatusCount();
-				lib.setPopped(_status.friendCount,function(){
-					var uiintro=ui.create.dialog('hidden');
-
-					if(_status.deadfriend.length){
-						uiintro.add('已阵亡');
-						uiintro.add([_status.deadfriend,'player']);
-					}
-
-					uiintro.add('未上场');
-					if(_status.mylist.length){
-						uiintro.add([_status.mylist,'character']);
-					}
-					else{
-						uiintro.add('（无）')
-					}
-
-					return uiintro;
-				});
-				lib.setPopped(_status.enemyCount,function(){
-					if(_status.deadenemy.length){
-						var uiintro=ui.create.dialog('hidden');
-						uiintro.add('已阵亡');
-						uiintro.add([_status.deadenemy,'player']);
-						return uiintro;
-					}
-				});
-
-				game.me.side=Math.random()<0.5;
-				game.enemy.side=!game.me.side;
-
-				var players=get.players(lib.sort.position);
-				var info=[];
-				for(var i=0;i<players.length;i++){
-					info.push({
-						name:players[i].name,
-						name2:players[i].name2,
-						count:players[i].actcount
-					});
-				}
-				_status.videoInited=true,
-				game.addVideo('init',null,info);
-
-				event.trigger('gameStart');
-				if(_status.mode=='deck'){
-					game.gameDraw(game.me,3);
-					game.me.drawDeck(1,false);
-					game.me.next.drawDeck(1,false);
-				}
-				else{
-					game.gameDraw(game.me);
-				}
-				"step 4"
-				game.me.chooseBool('是否置换手牌？');
-				"step 5"
-				if(result.bool){
-					var hs=game.me.get('h');
-					for(var i=0;i<hs.length;i++){
-						ui.discardPile.appendChild(hs[i]);
-					}
-					if(_status.mode=='deck'){
-						game.me.drawDeck(1,false);
-						game.me.directgain(get.cards(3));
-					}
-					else{
-						game.me.directgain(get.cards(4));
-					}
-				}
-				"step 6"
-				if(game.me.side){
-					game.stoneLoop(game.me);
-				}
-				else{
-					game.stoneLoop(game.enemy);
-				}
-			}
-		},
 		chooseCharacter:function(){
 			var next=game.createEvent('chooseCharacter',false);
 			next.showConfig=true;
@@ -1442,17 +1434,10 @@ mode.stone={
 				var list=[];
 				event.list=list;
 				for(i in lib.character){
-					if(lib.character[i][4]&&lib.character[i][4].contains('forbidai')) continue;
 					if(lib.character[i][4]&&lib.character[i][4].contains('minskin')) continue;
 					if(lib.character[i][4]&&lib.character[i][4].contains('stonehidden')) continue;
-					if(lib.config.forbidai.contains(i)) continue;
-					if(lib.config.forbidall.contains(i)) continue;
 					if(lib.config.forbidstone.contains(i)) continue;
-					if(lib.config.banned.contains(i)) continue;
-					if(!get.config('double_character')&&get.config('ban_weak')&&lib.config.forbidsingle.contains(i)) continue;
-					if(!get.config('double_character')&&get.config('ban_weak')&&(lib.rank.c.contains(i)||lib.rank.d.contains(i))) continue;
-					if(get.config('ban_strong')&&(lib.rank.s.contains(i)||lib.rank.ap.contains(i))) continue;
-					if(get.config('double_character')&&lib.config.forbiddouble.contains(i)) continue;
+					if(lib.filter.characterDisabled(i)) continue;
 					list.push(i);
 				}
 				list.randomSort();
@@ -1632,6 +1617,7 @@ mode.stone={
 					}
 				}
 				"step 3"
+				game.addRecentCharacter.apply(this,_status.mylist);
 				if(ui.coin){
 					_status.coinCoeff=get.coinCoeff(_status.mylist);
 				}
@@ -1657,6 +1643,18 @@ mode.stone={
 		},
 	},
 	get:{
+		stonecard:function(type,career){
+			var list=[];
+			for(var i in lib.card){
+				if(lib.card[i].stonehidden) continue;
+				if(lib.card[i].type!='stonecard'&&lib.card[i].type!='stonecharacter') continue;
+				if(type==1&&lib.card[i].type!='stonecard') continue;
+				if(type==2&&lib.card[i].type!='stonecharacter') continue;
+				if(career&&lib.card[i].career!=career) continue;
+				list.push(i);
+			}
+			return list;
+		},
 		deck:function(player,name){
 			var career,deck;
 			if(name=='random'||name.indexOf('random:')==0){
@@ -1737,7 +1735,7 @@ mode.stone={
 			type:'stonecard',
 			fullimage:true,
 			enable:true,
-			stoneact:2,
+			stoneact:3,
 			career:'warlock',
 			filterTarget:true,
 			content:function(){
@@ -2462,19 +2460,20 @@ mode.stone={
 
 		spell_shalumingling:{
 			type:'stonecard',
-			stoneact:3,
+			stoneact:2,
 			career:'hunter',
 			enable:true,
 			fullimage:true,
 			filterTarget:true,
 			content:function(){
-				'step 0'
-				target.damage(2);
-				'step 1'
+				var num=1;
 				var friends=player.getFellow();
-				if(friends.length){
-					game.asyncDraw(friends);
+				for(var i=0;i<friends.length;i++){
+					if(lib.beastList.contains(friends[i].name)){
+						num=2;break;
+					}
 				}
+				target.damage(num);
 			},
 			ai:{
 				order:7,
@@ -3134,7 +3133,7 @@ mode.stone={
 		},
 		spell_hanbingpingzhang:{
 			type:'stonecard',
-			stoneact:2,
+			stoneact:1,
 			career:'mage',
 			enable:true,
 			fullimage:true,
@@ -3246,7 +3245,11 @@ mode.stone={
 			career:'mage',
 			filterTarget:true,
 			content:function(){
-				target.damage(4,'fire');
+				var num=4;
+				if(!target.isMin()){
+					num=Math.min(4,target.hp);
+				}
+				target.damage(num,'fire');
 			},
 			ai:{
 				order:8,
@@ -4993,7 +4996,11 @@ mode.stone={
 			career:'mage',
 			filterTarget:true,
 			content:function(){
-				target.damage(3,'fire');
+				var num=3;
+				if(!target.isMin()){
+					num=Math.min(3,target.hp);
+				}
+				target.damage(num,'fire');
 			},
 			ai:{
 				order:8,
@@ -5202,7 +5209,7 @@ mode.stone={
 				if(player.isMin()) return false;
 				return player.canAddFellow();
 			},
-			stoneact:5,
+			stoneact:6,
 			filterTarget:function(card,player,target){
 				return target.isMin()&&target.side!=player.side;
 			},
@@ -5210,6 +5217,9 @@ mode.stone={
 				target.getLeader().removeFellow(target);
 				target.side=player.side;
 				player.addFellow(target);
+				if(!target.isTurnedOver()){
+					target.turnOver();
+				}
 			},
 			ai:{
 				order:9.5,
@@ -5522,8 +5532,8 @@ mode.stone={
 			trigger:{player:'phaseEnd'},
 			forced:true,
 			content:function(){
-				var list=['mengjing_feicuiyoulong','mengjing_huanxiaojiemei',
-					'mengjing_suxing','mengjing_mengye','mengjing_mengjing'];
+				var list=['hsmengjing_feicuiyoulong','hsmengjing_huanxiaojiemei',
+					'hsmengjing_suxing','hsmengjing_mengye','hsmengjing_mengjing'];
 				var target=player.getLeader();
 				target.gain(game.createCard(list.randomGet()));
 				target.$draw();
@@ -6853,9 +6863,9 @@ mode.stone={
 			forced:true,
 			unique:true,
 			mark:true,
-			marktext:'冒',
+			marktext:'帽',
 			intro:{
-				content:'你死亡时，将一张探险冒置入主将的手牌'
+				content:'你死亡时，将一张探险帽置入主将的手牌'
 			},
 			content:function(){
 				player.getLeader().addSkill('hunter_tanxianmao2');
@@ -9019,13 +9029,22 @@ mode.stone={
 			content:function(){
 				player.actused=0;
 				if(player.side){
-					player.actcount=player.getEnemy().actcount;
-				}
-				else{
 					player.actcount=player.getEnemy().actcount+1;
 				}
+				else{
+					player.actcount=player.getEnemy().actcount;
+					if(!_status.actcoin){
+						_status.actcoin=true;
+						player.actused--;
+					}
+				}
 				if(player.actcount>6){
-					player.actcount-=4;
+					if(get.config('mana_mode')=='inc'){
+						player.actcount=6;
+					}
+					else{
+						player.actcount-=4;
+					}
 				}
 				player.updateActCount();
 				player.getEnemy().updateActCount('outphase');
@@ -9387,12 +9406,12 @@ mode.stone={
 		spell_dubiao_info:'对一名随机敌方角色造成一点伤害',
 		spell_qiangfengsheji:'强风射击',
 		spell_qiangfengsheji_info:'对两名敌方随从各造成一点伤害，并弃置其两张手牌',
-		spell_tanxianmao:'探险冒',
-		hunter_tanxianmao:'探险冒',
-		hunter_tanxianmao_info:'你死亡时，将一张探险冒置入主将的手牌',
-		spell_tanxianmao_info:'令一名友方随从增加一点体力和体力上限并摸一张牌，当该随从死亡时，将一张探险冒置入你的手牌',
+		spell_tanxianmao:'探险帽',
+		hunter_tanxianmao:'探险帽',
+		hunter_tanxianmao_info:'你死亡时，将一张探险帽置入主将的手牌',
+		spell_tanxianmao_info:'令一名友方随从增加一点体力和体力上限并摸一张牌，当该随从死亡时，将一张探险帽置入你的手牌',
 		spell_shalumingling:'杀戮命令',
-		spell_shalumingling_info:'造成两点伤害，所有友方随从摸一张牌',
+		spell_shalumingling_info:'造成一点伤害，如果你控制任何野兽，则改为造成两点伤害',
 		spell_zhuizongshu:'追踪术',
 		spell_zhuizongshu_info:'从牌库中随机选择三张牌，获得其中的一张',
 		spell_tianjiangzhuqun:'天降蛛群',
@@ -9432,7 +9451,7 @@ mode.stone={
 		spell_emozhixin:'恶魔之心',
 		spell_emozhixin_info:'对一名敌方随从造成四点伤害，或令一名友方随从摸四张牌',
 		spell_ansezhadan:'暗色炸弹',
-		spell_ansezhadan_info:'造成两点伤害，随机弃置一张手牌',
+		spell_ansezhadan_info:'造成两点伤害',
 		spell_fushishu:'腐蚀术',
 		warlock_fushishu:'腐蚀',
 		warlock_fushishu_info:'下个回合结束后死亡',
@@ -9595,7 +9614,7 @@ mode.stone={
 		spell_canying:'残影',
 		spell_canying_info:'复制你的所有随从，并将其置入你的手牌',
 		spell_yanbaoshu:'炎爆术',
-		spell_yanbaoshu_info:'造成四点火焰伤害',
+		spell_yanbaoshu_info:'造成四点火焰伤害（若目标为主将，伤害不能超过目标的当前体力值）',
 		spell_jingxiang:'镜像',
 		spell_jingxiang_info:'召唤两个具有嘲讽且摸牌阶段不摸牌的随从',
 		spell_aoshufeidan:'奥术飞弹',
@@ -9616,7 +9635,7 @@ mode.stone={
 		spell_bianxingshu:'变形术',
 		spell_bianxingshu_info:'将一个随从变成一只绵羊',
 		spell_huoqiushu:'火球术',
-		spell_huoqiushu_info:'造成三点火焰伤害',
+		spell_huoqiushu_info:'造成三点火焰伤害（若目标为主将，伤害不能超过目标的当前体力值）',
 
 		stone_mianyang:'绵羊',
 		mage_mianyang:'绵羊',
@@ -9979,7 +9998,7 @@ mode.stone={
 		shaman_zhuore:'灼热',
 		shaman_zhuore_info:'已方主将的回合结束阶段，对一名随机敌方随从造成一点伤害',
 
-		_shaman_skill:'祭天',
+		_shaman_skill:'图腾',
 		_shaman_skill_info:'召唤一个随机图腾',
 		_mage_skill:'火冲',
 		_mage_skill_info:'对一名随从造成一点火焰伤害',
@@ -10134,5 +10153,35 @@ mode.stone={
 			}
 		}
 	},
-	config:['battle_number','double_character','double_hp','ban_weak','free_choose','change_choice'],
+	help:{
+		'炉石模式':
+		'<div style="margin:10px">构筑</div><ul style="margin-top:0"><li>点击右上角的卡组管理构建卡组<li>一套卡组共30张牌，由法术和随从牌构成，每个同名卡牌最多带两张'+
+		'<li>卡组管理器中，随从右上角的x/y表示登场状态为x牌y血'+
+		'<li>游戏开始时，双方摸三张牌并从牌库中获得一张牌，并可选择将手牌置换一次'+
+		'<li>每当主将摸X张牌时，若X至少为2，则其中的X-1张牌从牌堆中获得，1张牌从牌库中获得'+
+		'<li>每名角色使用一套卡组，卡组用完后会重新补满'+
+		'<li>卡组与职业绑定，每个职业有一个专属技能，每回合限用一次，消耗两点行动值</ul>'+
+		'<div style="margin:10px">职业技能</div><ul style="margin-top:0"><li>祭司：召唤一个随机图腾'+
+		'<li>法师：对一名随从造成一点火焰伤害'+
+		'<li>牧师：回复一点体力'+
+		'<li>战士：获得一点护甲（不能超过3点）'+
+		'<li>术士：牌库中摸两张牌'+
+		'<li>潜行者：装备一把武器和一个随机非武器装备'+
+		'<li>圣骑士：召唤一名士兵'+
+		'<li>猎人：对敌方主将造成一点伤害'+
+		'<li>德鲁伊：视为使用一张不计入出杀次数的杀</ul>'+
+		'<div style="margin:10px">怒气值</div><ul style="margin-top:0"><li>每当友方随从受到伤害获得3点怒气值，主将受到伤害获得6点怒气值'+
+		'<li>每有一个友方随从死亡，获得10点怒气值，主将死亡获得20点怒气值'+
+		'<li>回合结束阶段，若己方随从数少于对方会获得10X点怒气值，X为随从数之差'+
+		'<li>怒气值达到100时不再增加。回合开始阶段，若怒气值己满，可消耗全部怒气值并召唤一名传说随从</ul>'+
+		'<div style="margin:10px">战斗</div><ul style="margin-top:0"><li>游戏流程类似1v1，场上有两名主将进行对抗，主将的体力上限+1'+
+		'<li>游戏牌堆移除了乐不思蜀等跳过出牌阶段的卡牌'+
+		'<li>主将出牌阶段的出牌数量（行动值）有上限，从1开始递增，后手的首个回合有一点额外行动值，装备牌不计入出牌上限<li>游戏每进行一轮，主将的出牌上限+1，超过6时减至3并重新累加'+
+		'<li>使用随从牌可召唤一个随从，随从出场时背面朝上。每一方在场的随从数不能超过4<li>随从于摸牌阶段摸牌基数为1，随从的随从牌均视为闪，装备牌均视为杀<li>'+
+		'随从与其他所有角色相互距离基数为1<li>'+
+		'主将杀死对方随从后获得一个额外的行动值并摸两张牌，杀死己方随从无惩罚，随从杀死随从无效果'+
+		'<li>主将可重铸随从牌，但回合内总的重铸次数不能超过3，随从不能重铸任何牌（包括铁索等默认可以重铸的牌）；若重铸的牌为随从牌或法术牌，则摸牌改为获得一张随机法术牌'+
+		'<li>嘲讽：若一方阵营中有嘲讽角色，则同阵营的无嘲讽角色不以能成为杀目标'+
+		'<li>行动顺序为先主将后随从。主将或随从死亡后立即移出游戏，主将死亡后替补登场，替补登场时摸3+X张牌，X为对方存活的随从数，无替补时游戏结束'
+	}
 }

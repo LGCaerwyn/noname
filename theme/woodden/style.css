@@ -1,12 +1,7 @@
 html{
 	color: white;
 	text-shadow: black 0 0 2px;
-}
-body{
 	background: url('grid.png'),linear-gradient(#6c7989, #434b55) fixed;
-}
-body[data-background_color_wood='black']{
-	background: url('grid.png'),linear-gradient(#333333, #222222) fixed;
 }
 #system>div>div,#mebg,.control,.player,.card,.avatar,.avatar2,.button,.dialog>.bar,.menu,#splash>div,
 #arena.mobile:not(.chess) .player[data-position='0'] .equips,.playerbg{
@@ -65,7 +60,7 @@ body[data-background_color_wood='black']{
 .control .controlthundertext{
 	color: rgb(62, 41, 30);
 }
-.player,.card,.button,.dialog>.bar,
+.player,.card,.dialog>.bar,
 #arena.mobile:not(.chess) .player[data-position='0'] .equips,.playerbg{
 	background: url('wood.jpg');
 }
@@ -91,7 +86,8 @@ body[data-background_color_wood='black']{
 .menubutton.large{
 	box-shadow: rgba(0, 0, 0, 0.3) 0 0 0 1px, rgba(0, 0, 0, 0.3) 0 0 5px !important;
 }
-.menubutton.large.active{
+.menubutton.large.active,
+.menubutton.round.active{
 	box-shadow: rgba(0, 0, 0, 0.3) 0 0 0 1px, rgba(0, 133, 255, 0.4) 0 0 0 2px, rgba(0, 133, 255, 1) 0 0 5px !important;
 }
 .config.toggle>div>div{

@@ -3,7 +3,10 @@ html{width: 100%;height: 100%;font-size: 16px;cursor: default;overflow: hidden;
 	-ms-user-select:none;
 	-moz-user-select:none;
 	-webkit-user-select:none;
-	-webkit-font-smoothing: subpixel-antialiased;-webkit-tap-highlight-color:rgba(0,0,0,0);}
+	-webkit-font-smoothing: subpixel-antialiased;
+	-webkit-tap-highlight-color:rgba(0,0,0,0);
+    background-color: rgb(60,60,60);
+}
 body{
 	width: 100%;height: 100%;padding: 0; margin: 0;
 	text-rendering:optimizeLegibility;
@@ -36,28 +39,123 @@ table{table-layout: fixed;}
 	position: absolute;
 	transition: all 1s;
 }
+#window.shortcutpaused>div:not(.background):not(#shortcut):not(#system):not(#arena):not(.hidden):not(.removing):not(.dialog){opacity: 0.3 !important}
+#window.shortcutpaused>#arena>div:not(#timer):not(.removing):not(.hidden){opacity: 0.3 !important}
 #window.noclick_important *{pointer-events: none !important;}
 #window.noclick_important .noclick_click_important div{pointer-events: auto !important}
+#shortcut{
+	width:100%;
+	height:100%;
+	position:absolute;
+	left:0;
+	top:0;
+	z-index: 10;
+	/*background-color: rgba(0, 0, 0, 0.6);*/
+}
+#shortcut>div{
+	width: 80px;
+	height: 80px;
+	padding: 10px;
+	margin: 0;
+
+	overflow: hidden;
+	line-height: 80px;
+	font-size: 50px;
+	white-space: nowrap;
+	text-align: center;
+	letter-spacing: -6px;
+	transform: scale(1.3);
+}
+#shortcut>div:not(.menubutton){
+	width: 100%;
+	height: 80px;
+	margin: 0;
+	padding: 0;
+	left: 0;
+	top:0;
+}
+#shortcut>div>span{
+	width: 200px;
+	left: -63px;
+	position: relative;
+	display: inline-block;
+}
+#shortcut>div[data-position="1"]{
+	left:calc(50% - 50px);
+	top: calc(50% - 190px);
+}
+#shortcut.hidden>div[data-position="1"]{
+	transform: scale(1) translateY(150px);
+}
+#shortcut>div[data-position="2"]{
+	left:calc(50% + 100px);
+	top: calc(50% - 40px);
+}
+#shortcut.hidden>div[data-position="2"]{
+	transform: scale(1) translateX(-150px);
+}
+#shortcut>div[data-position="3"]{
+	left:calc(50% - 50px);
+	top: calc(50% + 110px);
+}
+#shortcut.hidden>div[data-position="3"]{
+	transform: scale(1) translateY(-150px);
+}
+#shortcut>div[data-position="4"]{
+	left:calc(50% - 200px);
+	top: calc(50% - 40px);
+}
+#shortcut.hidden>div[data-position="4"]{
+	transform: scale(1) translateX(150px);
+}
+#shortcut>div[data-position="5"]{
+	left:calc(50% - 50px);
+	top: calc(50% - 50px);
+}
+#shortcut.hidden{
+	pointer-events: none;
+	transition: opacity 0.3s;
+}
 #splash{
 	width:100%;
-	height: 300px;
+	height: 100%;
 	left:0;
-	top:calc(50% - 150px);
+	top:0;
 	position: absolute;
 	text-align: center;
 	overflow: visible;
 	transition: all 0.3s;
+	overflow-x: scroll;
+	white-space: nowrap;
+}
+#splash.removing{
+	pointer-events: none;
 }
 #splash>div{
 	width:100px;
-	height:100%;
+	height:300px;
+	top:calc(50% - 150px);
 	margin-left:10px;
 	margin-right:10px;
 	position: relative;
-	transition: all 0.5s;
+	transition: all 0.8s;
+}
+#splash:not(.touch)>div:hover{
+	transform: translateY(-20px);
+}
+#splash>div.clicked{
+	transform: translateY(-20px) scale(1.5);
+	transition: all 0.3s;
+	opacity: 0;
 }
 #splash>div.hidden{
-	transform: translateY(-200px);
+	transform: translateY(-300px) scale(0.5);
+}
+#splash.low_performance>div.hidden{
+	transform: scale(0.8);
+}
+#splash.low_performance>div{
+	transition: all 0.5s;
 }
 #splash>div>.splashtext{
 	font-family: 'huangcao','xinwei';
@@ -161,7 +259,7 @@ table{table-layout: fixed;}
 	pointer-events: none;
 	position: absolute;
 }
-#arena.playerfocus>div:not(.playerfocus):not(#chess-container):not(.removing){
+#arena.playerfocus>div:not(#timer):not(.playerfocus):not(#chess-container):not(.removing){
 	opacity: 0.3 !important;
 }
 #arena.playerfocus #chess>div:not(.playerfocus):not(.removing){
@@ -173,6 +271,10 @@ table{table-layout: fixed;}
 .player.linked:not(.treasure).playerfocus{
 	transform: scale(1.1) rotate(-90deg);
 }
+.player.connect>div:not(.avatar):not(.name):not(.nameol){
+	display: none !important;
+}
+
 #arena #me>div>div>.card{
 	position: absolute;
 	left:8px;
@@ -500,12 +602,17 @@ margin-bottom: 5px;
 .dialog>.content>.config{width:300px;left:calc(50% - 150px);}
 .toggle{right: 16px;left: auto !important;min-width: 16px;text-align: right !important;}
 .switcher{width: 88%;position: relative;}
+.dialog.popped .caption{transition: all 0s;}
 .caption{padding-top: 8px;font-size: 20px;display: block;}
 .caption:only-child{padding-bottom:8px;}
 .caption:not(.normal)>div{text-align: left;display: block;width: 100%;}
 .caption>div{position: relative;}
 .caption>.text{font-size:16px;text-align:left}
 .caption>.text.center{text-align:center}
+.caption>.text.chat{word-break: break-all;margin-bottom: 3px;margin-left: 10px;width: calc(100% - 20px)}
+.caption>.text.textlink{margin-left: 10px;}
+.caption>.text.textlink:not(*:first-child){margin-top: 6px;}
+.caption>.text.textlink:hover{text-decoration: underline;}
 .caption>div>div{font-size: 16px;position: relative;width: calc(100% - 70px);vertical-align: top;margin: 0;padding: 0;}
 .skill{left: 0 !important;width: 70px !important;}
 .caption>.ctext{text-align:center;font-size:16px;}
@@ -586,6 +693,17 @@ margin-bottom: 5px;
 	font-family: 'huangcao','xinwei';
 }
 
+.player>.nameol{
+	left:0;
+	top:13px;
+	width: 100%;
+	font-size: 12px;
+	text-align: center;
+	/*opacity: 0;*/
+}
+.player:hover>.nameol{
+	opacity: 1;
+}
 .player>.name{left: 16px;top:24px;font-size:20px;font-family: 'xinwei';}
 .player>.name.name2{left:81px}
 #arena.slim_player .player>.name{
@@ -621,6 +739,7 @@ margin-bottom: 5px;
 	transform:scale(0.7);
 	white-space: nowrap;
 	z-index: 5;
+	pointer-events: none;
 }
 #window>.damage{
 	transform:scale(2);
@@ -879,6 +998,27 @@ margin-bottom: 5px;
 .player[data-position='0']{top:calc(100% - 130px);left:calc(50% - 120px);}
 .card[data-position='0']{top:calc(100% - 130px);left:calc(50% - 52px);}
 .popup[data-position='0']{top:calc(100% - 176px);left:calc(50% - 106px);}
+
+#window>.player.connect[data-position='0']{left:calc(25% - 180px);top:calc(300% / 7 - 155px);}
+#window>.player.connect[data-position='1']{left:calc(50% - 120px);top:calc(300% / 7 - 155px);}
+#window>.player.connect[data-position='2']{left:calc(75% - 60px);top:calc(300% / 7 - 155px);}
+#window>.player.connect[data-position='3']{left:calc(25% - 180px);top:calc(400% / 7 - 75px);}
+#window>.player.connect[data-position='4']{left:calc(75% - 60px);top:calc(400% / 7 - 75px);}
+#window>.player.connect[data-position='5']{left:calc(25% - 180px);top:calc(500% / 7 + 5px);}
+#window>.player.connect[data-position='6']{left:calc(50% - 120px);top:calc(500% / 7 + 5px);}
+#window>.player.connect[data-position='7']{left:calc(75% - 60px);top:calc(500% / 7 + 5px);}
+
+#window>.player.connect[data-position='c0']{left:calc(50% - 120px);top:calc(50% - 200px)}
+#window>.player.connect[data-position='c1']{left:calc(50% - 120px);top:calc(50% - 60px)}
+#window>.player.connect[data-position='c2']{left:calc(50% - 120px);top:calc(50% + 80px)}
+
+.connectbutton{
+	top:calc(400% / 7 - 35px);
+	width:130px;
+	left:calc(50% - 65px);
+}
+
+
 /*--------动画--------*/
 .start,.equips>.card,.judges>.card,.marks>.card,.popup{
 	animation: game_start 0.5s;
@@ -975,6 +1115,7 @@ margin-bottom: 5px;
 #arena.selecting:not(.video) .dialog:not(.noselect) .button:not(.selectable):not(.noclick),
 .dead,.likedead{opacity: 0.6;}
 .unselectable:not(.selected):not(.removing){opacity: 0.6 !important}
+.unselectable2{opacity: 0.4 !important}
 .mark>.background{opacity: 1 !important;}
 #arena.selecting:not(.video) #me .card:not(.selectable){
 	opacity:0.8
@@ -1054,10 +1195,12 @@ div:hover>.intro{opacity: 1;}
 	box-shadow: rgba(0, 0, 0, 0.3) 0 0 0 1px;
 	border-radius:4px;
 }
-.shadowed{
+.shadowed,
+.menubutton.large.shadowed{
 	background: rgba(0,0,0,0.2);
 	box-shadow: rgba(0, 0, 0, 0.3) 0 0 0 1px;
 	border-radius:8px;
+	color: white !important;
 }
 #window.reduce_radius .shadowed{
 	border-radius: 4px;
@@ -1137,85 +1280,104 @@ div:hover>.intro{opacity: 1;}
 	-webkit-animation:identity 0.8s;
 }
 .player .identity[data-color="zhu"],
-div[data-nature='fire']{
+div[data-nature='fire'],
+span[data-nature='fire']{
 	text-shadow: black 0 0 1px,rgba(232, 53, 53,1) 0 0 2px,rgba(232, 53, 53,1) 0 0 5px,rgba(232, 53, 53,1) 0 0 10px,
 		rgba(232, 53, 53,1) 0 0 10px,rgba(232, 53, 53,1) 0 0 20px,rgba(232, 53, 53,1) 0 0 20px
 }
-div[data-nature='firem']{
+div[data-nature='firem'],
+span[data-nature='firem']{
 	text-shadow: black 0 0 1px,rgba(232, 53, 53,1) 0 0 2px,rgba(232, 53, 53,1) 0 0 5px,rgba(232, 53, 53,1) 0 0 5px,
 		rgba(232, 53, 53,1) 0 0 5px,black 0 0 1px;
 }
 .player .identity[data-color="zhong"],
 .player .identity[data-color="mingzhong"],
 .player .identity[data-color="qun"],
-div[data-nature='metal']{
+div[data-nature='metal'],
+span[data-nature='metal']{
 	text-shadow: black 0 0 1px,rgba(255, 203, 0,1) 0 0 2px,rgba(255, 203, 0,1) 0 0 5px,rgba(255, 203, 0,1) 0 0 10px,
 		rgba(255, 203, 0,1) 0 0 10px
 }
-div[data-nature='metalm']{
+div[data-nature='metalm'],
+span[data-nature='metalm']{
 	text-shadow: black 0 0 1px,rgba(255, 203, 0,1) 0 0 2px,rgba(255, 203, 0,1) 0 0 5px,rgba(255, 203, 0,1) 0 0 5px,
 		rgba(255, 203, 0,1) 0 0 5px,black 0 0 1px;
 }
-div[data-nature='metalmm']{
+div[data-nature='metalmm'],
+span[data-nature='metalmm']{
 	text-shadow: black 0 0 1px,rgba(255, 203, 0,1) 0 0 2px,rgba(255, 203, 0,1) 0 0 2px,rgba(255, 203, 0,1) 0 0 2px,
 		rgba(255, 203, 0,1) 0 0 2px,black 0 0 1px;
 }
 .player .identity[data-color="nei"],
 .player .identity[data-color="ye"],
-div[data-nature='thunder']{
+div[data-nature='thunder'],
+span[data-nature='thunder']{
 	text-shadow: rgba(100, 74, 139,1) 0 0 2px,rgba(100, 74, 139,1) 0 0 5px,rgba(100, 74, 139,1) 0 0 10px,
 		rgba(100, 74, 139,1) 0 0 10px,rgba(100, 74, 139,1) 0 0 20px,rgba(100, 74, 139,1) 0 0 20px,black 0 0 1px;
 }
-div[data-nature='thunderm']{
+div[data-nature='thunderm'],
+span[data-nature='thunderm']{
 	text-shadow: rgba(100, 74, 139,1) 0 0 2px,rgba(100, 74, 139,1) 0 0 5px,rgba(100, 74, 139,1) 0 0 5px,
 		rgba(100, 74, 139,1) 0 0 5px,black 0 0 1px;
 }
 .player .identity[data-color="fan"],
 .player .identity[data-color="wu"],
-div[data-nature='wood']{
+div[data-nature='wood'],
+span[data-nature='wood']{
 	text-shadow: rgba(57, 123, 4,1) 0 0 2px,rgba(57, 123, 4,1) 0 0 5px,rgba(57, 123, 4,1) 0 0 10px,
 		rgba(57, 123, 4,1) 0 0 10px,rgba(57, 123, 4,1) 0 0 20px,rgba(57, 123, 4,1) 0 0 20px,black 0 0 1px;
 }
-div[data-nature='woodm']{
+div[data-nature='woodm'],
+span[data-nature='woodm']{
 	text-shadow: rgba(57, 123, 4,1) 0 0 2px,rgba(57, 123, 4,1) 0 0 5px,rgba(57, 123, 4,1) 0 0 5px,
 		rgba(57, 123, 4,1) 0 0 5px,black 0 0 1px;
 }
-div[data-nature='woodmm']{
+div[data-nature='woodmm'],
+span[data-nature='woodmm']{
 	text-shadow: rgba(57, 123, 4,1) 0 0 2px,rgba(57, 123, 4,1) 0 0 2px,rgba(57, 123, 4,1) 0 0 2px,
 		rgba(57, 123, 4,1) 0 0 2px,black 0 0 1px;
 }
 .player .identity[data-color="cai"],
 .player .identity[data-color="wei"],
-div[data-nature='water']{
+div[data-nature='water'],
+span[data-nature='water']{
 	text-shadow: rgba(78, 117, 140,1) 0 0 2px,rgba(78, 117, 140,1) 0 0 5px,rgba(78, 117, 140,1) 0 0 10px,
 		rgba(78, 117, 140,1) 0 0 10px,rgba(78, 117, 140,1) 0 0 20px,rgba(78, 117, 140,1) 0 0 20px,black 0 0 1px;
 }
-div[data-nature='waterm']{
+div[data-nature='waterm'],
+span[data-nature='waterm']{
 	text-shadow: rgba(78, 117, 140,1) 0 0 2px,rgba(78, 117, 140,1) 0 0 5px,rgba(78, 117, 140,1) 0 0 5px,
 		rgba(78, 117, 140,1) 0 0 5px,black 0 0 1px;
-}div[data-nature='watermm']{
+}
+div[data-nature='watermm'],
+span[data-nature='watermm']{
 	text-shadow: rgba(78, 117, 140,1) 0 0 2px,rgba(78, 117, 140,1) 0 0 2px,rgba(78, 117, 140,1) 0 0 2px,
 		rgba(78, 117, 140,1) 0 0 2px,black 0 0 1px;
 }
 .player .identity[data-color="shu"],
-div[data-nature='soil']{
+div[data-nature='soil'],
+span[data-nature='soil']{
 	text-shadow: rgba(128, 59, 2,1) 0 0 2px,rgba(128, 59, 2,1) 0 0 5px,rgba(128, 59, 2,1) 0 0 10px,
 		rgba(128, 59, 2,1) 0 0 10px,rgba(128, 59, 2,1) 0 0 20px,rgba(128, 59, 2,1) 0 0 20px,black 0 0 1px;
 }
-div[data-nature='soilm']{
+div[data-nature='soilm'],
+span[data-nature='soilm']{
 	text-shadow: rgba(128, 59, 2,1) 0 0 2px,rgba(128, 59, 2,1) 0 0 5px,rgba(128, 59, 2,1) 0 0 5px,
 		rgba(128, 59, 2,1) 0 0 5px,black 0 0 1px;
 }
-div[data-nature='soilmm']{
+div[data-nature='soilmm'],
+span[data-nature='soilmm']{
 	text-shadow: rgba(128, 59, 2,1) 0 0 2px,rgba(128, 59, 2,1) 0 0 2px,rgba(128, 59, 2,1) 0 0 2px,
 		rgba(128, 59, 2,1) 0 0 2px,black 0 0 1px;
 }
 .player .identity[data-color="unknownx"],
-div[data-nature='black']{
+div[data-nature='black'],
+span[data-nature='black']{
 	text-shadow: rgba(0,0,0,0.5) 0 0 2px,rgba(0,0,0,0.5) 0 0 5px,rgba(0,0,0,0.5) 0 0 10px,
 		rgba(0,0,0,0.5) 0 0 10px,rgba(0,0,0,0.5) 0 0 20px,rgba(0,0,0,0.5) 0 0 20px,black 0 0 1px;
 }
-div[data-color="unknownm"]{
+div[data-color="unknownm"],
+span[data-color="unknownm"]{
 	text-shadow: rgba(0,0,0,0.5) 0 0 2px,rgba(0,0,0,0.2) 0 0 5px,rgba(0,0,0,0.2) 0 0 5px,
 		rgba(0,0,0,0.2) 0 0 5px,black 0 0 1px;
 }
@@ -1291,6 +1453,75 @@ div[data-color="unknownm"]{
 }
 .config>.toggle.onoff.on>div>div{
 	left:calc(100% - 11px);
+}
+
+#arena>.skillbar{
+    width: 65px;
+    height: 65px;
+    border-radius: 100%;
+    font-size: 55px;
+    font-family: 'huangcao';
+    top:calc(50% - 110px);
+    line-height: 65px;
+    text-align: center;
+}
+#arena>.skillbar.left{
+    left:0;
+    right: auto;
+}
+#arena>.skillbar.right{
+    right:0;
+    left:auto;
+}
+#arena>.skillbar>div{
+    border-radius: 100%;
+    width: 55px;
+    height: 55px;
+    position: absolute;
+    margin: 0;
+    padding: 0;
+    left: 5px;
+    top: 5px;
+    overflow: hidden;
+}
+#arena>.skillbar>.skillbarshadow{
+    box-shadow: 0px 0px 8px #222 inset;
+    z-index: 1;
+}
+#arena>.skillbar>.skillbarfill>div{
+    box-shadow: 0px 0px 10px #555 inset,rgba(0, 0, 0, 0.05) 0 0 0 1px;
+    width: 200%;
+    height: 200%;
+    position: absolute;
+    margin: 0;
+    padding: 0;
+    background-color: rgba(63, 119, 173,1);
+    left: -50%;
+    top: 100%;
+}
+#arena>.skillbar.full>.skillbarfill>div{
+    box-shadow: none;
+    background-color: red;
+}
+#arena>.skillbar.full{
+    /*transform: scale(1.1);*/
+    /*box-shadow: rgba(0, 0, 0, 0.1) 0 0 0 1px, rgba(0, 0, 0, 0.45) 0 3px 10px;
+    -webkit-animation:skillbarglow 3s infinite;*/
+}
+#arena>.skillbar>.skillbartext{
+    font-family: 'xinwei';
+    font-size: 35px;
+    width: 100%;
+    text-align: center;
+    height: 35px;
+    line-height: 40px;
+    overflow: visible;
+    margin: 0;
+    padding: 0;
+    left: 0;
+    top: 15px;
+    z-index: 2;
+    opacity: 0;
 }
 
 .firetext{
@@ -1403,6 +1634,18 @@ div:hover>.wunature{
 	top:59px;
 }
 
+#arena.oldlayout .player>.timerbar>div{top:100px;left:15px;width: 90px;}
+#arena.oldlayout .player>.nameol{left:15px;top:85px;text-align: left}
+.timerbar>div{left: 25px;box-shadow:0px 1px 3px rgba(0,0,0,0.3);border-radius: 8px;height: 5px;width: 100px;}
+.timerbar>div:first-child{background: rgba(255,255,255,0.6);}
+.timerbar>div{top:165px;}
+.timerbar>div:last-child{background: linear-gradient(#FFDA47, #CE0404);transition-timing-function: linear;}
+/*.timerbar>div:last-child{background: linear-gradient(#FFFFFF,#F0F0F0);}
+.timerbar[data-color="red"]>div:last-child{background: linear-gradient(#FF0000, #CE0404)}
+.timerbar[data-color="blue"]>div:last-child{background: linear-gradient(#8EE0FA, #0F637E)}
+.timerbar[data-color="green"]>div:last-child{background: linear-gradient(#7AFF00, #589103)}
+.timerbar[data-color="purple"]>div:last-child{background: linear-gradient(#E247FF, #CE0404)}
+.timerbar[data-color="orange"]>div:last-child{background: linear-gradient(#FFDA47, #CE0404)}*/
 
 .player.selectable{
 	box-shadow: rgba(0, 0, 0, 0.2) 0 0 0 1px, rgba(0, 133, 255, 0.5) 0 0 5px, rgba(0, 133, 255, 0.6) 0 0 12px, rgba(0, 133, 255, 0.8) 0 0 15px;
@@ -1412,6 +1655,9 @@ div:hover>.wunature{
 }
 #me .card.selected{
 	box-shadow: rgba(0, 0, 0, 0.2) 0 0 0 1px,rgb(255, 0, 0) 0 0 5px, rgba(255, 0, 0, 1) 0 0 10px !important;
+}
+#me .card.glow{
+	box-shadow: rgba(0, 0, 0, 0.2) 0 0 0 1px,rgb(0, 133, 255) 0 0 5px, rgba(0, 133, 255,1) 0 0 10px !important;
 }
 #me>#handcards1:not(.scrollh),
 #me>#handcards2:not(.scrollh){
@@ -1513,6 +1759,8 @@ div:hover>.wunature{
 	from {transform:perspective(1200px) rotateY(-90deg) translateX(150px)}
 	to{transform:perspective(1200px) rotateY(0deg) translateX(0)}
 }
+@keyframes splash{from {opacity: 0;transform:translateY(-300px)}}
+@-webkit-keyframes splash{from {opacity: 0;transform:translateY(-300px)}}
 @keyframes game_start{from {opacity: 0;}}
 @-webkit-keyframes game_start{from {opacity: 0;}}
 @keyframes equip_hover{0% {opacity: 0;}50% {opacity: 0;}}
@@ -1558,11 +1806,7 @@ div:hover>.wunature{
 @keyframes flip{from{transform:perspective(1000px) rotateY(0);}to{transform:perspective(1000px) rotateY(360deg);}}
 @-webkit-keyframes flip{from{transform:perspective(1000px) rotateY(0);}to{transform:perspective(1000px) rotateY(360deg);}}
 /*--------其它--------*/
-@font-face {font-family: 'xiaozhuan';src: url('../../font/xiaozhuan.ttf');}
-@font-face {font-family: 'huangcao';src: url('../../font/huangcao.ttf');}
-@font-face {font-family: 'xinwei';src: url('../../font/xinwei.ttf');}
 ::-webkit-scrollbar{display: none;}
-
 @media screen and (min-height: 800px) and (orientation:landscape)  {
 	#arena{height: 720px;top: calc(50% - 350px);}
 }

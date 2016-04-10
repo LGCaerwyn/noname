@@ -168,7 +168,7 @@ character.yxs={
 				return 6-ai.get.value(card);
 			},
 			ai:{
-				order:7.5,
+				order:2,
 				result:{
 					target:function(player,target){
 						if(target.isLinked()) return 1;
@@ -2031,7 +2031,9 @@ character.yxs={
 				return 6-ai.get.value(card);
 			},
 			filterCard:function(card){
-				return !lib.card[card.name].image;
+				var info=lib.card[card.name];
+				if(!info) return false;
+				return !info.image&&!info.fullimage;
 			},
 			discard:false,
 			lose:false,
@@ -2108,7 +2110,7 @@ character.yxs={
 		yxs_mingchenghuanghou:'明成皇后',
 		yxs_wangzhaojun:'王昭君',
 		yxs_luocheng:'罗成',
-		yxs_direnjie:'狄人杰',
+		yxs_direnjie:'狄仁杰',
 		yxs_sunwu:'孙武',
 		yxs_chengyaojin:'程咬金',
 		yxs_yujix:'虞姬',

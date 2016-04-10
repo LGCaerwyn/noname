@@ -1,6 +1,336 @@
 'use strict';
 mode.identity={
+	start:function(){
+		"step 0"
+		if(!lib.config.new_tutorial){
+			ui.arena.classList.add('only_dialog');
+		}
+		_status.mode=get.config('identity_mode');
+		"step 1"
+		var playback=localStorage.getItem(lib.configprefix+'playback');
+		if(playback){
+			ui.create.me();
+			ui.arena.style.display='none';
+			ui.system.style.display='none';
+			_status.playback=playback;
+			localStorage.removeItem(lib.configprefix+'playback');
+			var store=lib.db.transaction(['video'],'readwrite').objectStore('video');
+			store.get(parseInt(playback)).onsuccess=function(e){
+				if(e.target.result){
+					game.playVideoContent(e.target.result.video);
+				}
+				else{
+					alert('播放失败：找不到录像');
+					game.reload();
+				}
+			}
+			event.finish();
+		}
+		else if(!_status.connectMode){
+			if(_status.mode=='zhong'){
+				game.prepareArena(8);
+			}
+			else{
+				game.prepareArena();
+			}
+			if(!lib.config.new_tutorial){
+				game.delay();
+			}
+		}
+		"step 2"
+		if(!lib.config.new_tutorial){
+			game.saveConfig('version',lib.version);
+			var clear=function(){
+				ui.dialog.close();
+				while(ui.controls.length) ui.controls[0].close();
+			};
+			var clear2=function(){
+				ui.auto.show();
+				ui.arena.classList.remove('only_dialog');
+			};
+			var step1=function(){
+				ui.create.dialog('欢迎来到无名杀，是否进入新手向导？');
+				game.saveConfig('new_tutorial',true);
+				ui.dialog.add('<div class="text center">跳过后，你可以在选项-其它中重置新手向导');
+				ui.auto.hide();
+				ui.create.control('跳过向导',function(){
+					clear();
+					clear2();
+					game.resume();
+				});
+				ui.create.control('继续',step2);
+			}
+			var step2=function(){
+				if(lib.config.layout!='phone'){
+					clear();
+					ui.create.dialog('如果你在使用手机，可能会觉得按钮有点小'+
+					'，将布局改成移动可以使按钮变大');
+					ui.dialog.add('<div class="text center">你可以在选项-外观-布局中更改此设置');
+					var lcontrol=ui.create.control('使用移动布局',function(){
+						if(lib.config.layout=='phone'){
+							ui.control.firstChild.firstChild.innerHTML='使用移动布局';
+							lib.init.layout('mobile');
+						}
+						else{
+							ui.control.firstChild.firstChild.innerHTML='使用默认布局';
+							lib.init.layout('phone');
+						}
+					});
+					ui.create.control('继续',step3);
+				}
+				else{
+					step3();
+				}
+			};
+			var step3=function(){
+				if(lib.config.touchscreen){
+					clear();
+					ui.create.dialog('触屏模式中，下划可以显示菜单，上划可以切换托管，双指单击可以暂停');
+					ui.dialog.add('<div class="text center">你可以在选项-通用-中更改手势设置');
+					ui.create.control('继续',step4);
+				}
+				else{
+					step4();
+				}
+			};
+			var step4=function(){
+				clear();
+				ui.window.classList.add('noclick_important');
+				ui.click.configMenu();
+				ui.control.classList.add('noclick_click_important');
+				ui.control.style.top='calc(100% - 105px)';
+				ui.create.control('在菜单中，可以进行各项设置',function(){
+					ui.click.menuTab('选项');
+					ui.controls[0].replace('如果你感到游戏较卡，可以开启流畅模式',function(){
+						ui.controls[0].replace('在技能一栏中，可以设置自动发动或双将禁配的技能',function(){
+							ui.click.menuTab('武将');
+							ui.controls[0].replace('在武将或卡牌一栏中，单击武将/卡牌可以将其禁用',function(){
+								ui.click.menuTab('战局');
+								ui.controls[0].replace('在战局中可以输入游戏命令，或者管理录像',function(){
+									ui.click.configMenu();
+									ui.window.classList.remove('noclick_important');
+									ui.control.classList.remove('noclick_click_important');
+									ui.control.style.top='';
+									step5();
+								});
+							});
+						});
+					});
+				})
+			};
+			var step5=function(){
+				clear();
+				ui.create.dialog('如果还有其它问题，欢迎来到百度无名杀吧进行交流');
+				ui.create.control('完成',function(){
+					clear();
+					clear2();
+					game.resume();
+				})
+			};
+			game.pause();
+			step1();
+		}
+		else{
+			game.showChangeLog();
+		}
+		"step 3"
+		if(lib.storage.test){
+			lib.config.game_speed='vfast';
+			_status.auto=true;
+			ui.auto.classList.add('glow');
+		}
+		if(_status.connectMode){
+			game.waitForPlayer(function(){
+				for(var i in lib.mode.identity.config){
+					if(lib.mode.identity.config[i].connect){
+						lib.configOL[i]=get.config(i);
+					}
+				}
+				if(_status.mode=='zhong'){
+					lib.configOL.number=8;
+				}
+				else{
+					lib.configOL.number=lib.configOL.player_number;
+				}
+				lib.configOL.characterPack=['standard','shenhua'];
+				lib.configOL.cardPack=['standard','ex','extra','refresh','mingzhong'];
+				lib.configOL.mode='identity';
+				var cardPackList=[];
+				for(var i=0;i<lib.configOL.cardPack.length;i++){
+					cardPackList=cardPackList.concat(lib.cardPack[lib.configOL.cardPack[i]]);
+				}
+				for(var i=0;i<lib.card.list.length;i++){
+					if(!cardPackList.contains(lib.card.list[i][2])){
+						lib.card.list.splice(i--,1);
+					}
+				}
+			});
+		}
+		"step 4"
+		if(_status.connectMode){
+			_status.mode=lib.configOL.identity_mode;
+			game.prepareArena();
+			var list=[];
+			for(var i=0;i<game.players.length;i++){
+				if(game.players[i]!=game.me){
+					list.push(game.players[i]);
+				}
+			}
+			var map=[];
+			for(var i=0;i<lib.node.clients.length;i++){
+				if(!list.length) break;
+				var current=list.randomRemove();
+				current.ws=lib.node.clients[i];
+				current.playerid=current.ws.id;
+				current.nickname=current.ws.nickname;
+				current.setNickname();
+			}
+			game.me.playerid=get.id();
+			game.me.nickname=lib.config.connect_nickname;
+			game.me.setNickname();
+			for(var i=0;i<game.players.length;i++){
+				if(!game.players[i].playerid){
+					game.players[i].playerid=get.id();
+				}
+				map.push([game.players[i].playerid,game.players[i].nickname]);
+				lib.playerOL[game.players[i].playerid]=game.players[i];
+			}
+			game.broadcast(function(map,config){
+				lib.configOL=config;
+				ui.create.players();
+				ui.create.me();
+				game.me.playerid=game.onlineID;
+				game.me.nickname=lib.config.connect_nickname;
+				for(var i=0;i<map.length;i++){
+					if(map[i][0]==game.me.playerid){
+						map=map.concat(map.splice(0,i));
+						break;
+					}
+				}
+				for(var i=0;i<game.players.length;i++){
+					game.players[i].playerid=map[i][0];
+					game.players[i].nickname=map[i][1];
+					game.players[i].setNickname();
+					lib.playerOL[game.players[i].playerid]=game.players[i];
+				}
+				_status.mode=lib.configOL.identity_mode;
+			},map,lib.configOL);
+			game.chooseCharacterOL();
+		}
+		else{
+			game.chooseCharacter();
+		}
+		"step 5"
+		if(ui.coin){
+			_status.coinCoeff=get.coinCoeff([game.me.name]);
+		}
+		if(game.players.length==2){
+			game.showIdentity(true);
+			if(game.me.next.isOnline){
+				game.me.next.send(function(identity){
+					game.me.next.setIdentity(identity);
+				},game.me.identity);
+			}
+		}
+		else{
+			for(var i=0;i<game.players.length;i++){
+				game.players[i].ai.shown=0;
+			}
+		}
+		game.zhu.ai.shown=1;
+		if(game.zhu2){
+			game.zhong=game.zhu;
+			game.zhu=game.zhu2;
+			delete game.zhu2;
+		}
+		if(_status.mode!='zhong'&&get.config('enhance_zhu')&&get.population('fan')>=3){
+			var skill;
+			switch(game.zhu.name){
+				case 'liubei':skill='jizhen';break;
+				case 'dongzhuo':skill='hengzheng';break;
+				case 'sunquan':skill='batu';break;
+				case 'sp_zhangjiao':skill='tiangong';break;
+				case 'liushan':skill='shengxi';break;
+				case 'sunce':skill='ciqiu';break;
+				case 'yuanshao':skill='geju';break;
+				case 're_caocao':skill='dangping';break;
+				case 'caopi':skill='junxing';break;
+				case 'liuxie':skill='moukui';break;
+				default:skill='tianming';break;
+			}
+			game.zhu.addSkill(skill);
+			game.zhu.storage.enhance_zhu=skill;
+		}
+		if(lib.storage.test){
+			if(typeof lib.storage.test=='string'){
+				if(Math.random()<0.5) game.me.next.init(lib.storage.test);
+				else game.me.init(lib.storage.test);
+			}
+			var str='';
+			for(var i=0;i<game.players.length;i++){
+				str+=get.translation(game.players[i]);
+				if(game.players[i]==game.zhu) str+='（主）';
+				str+=' ';
+			}
+			console.log(str);
+			game.showIdentity();
+		}
+		game.syncState();
+		event.trigger('gameStart');
+
+		var players=get.players(lib.sort.position);
+		var info=[];
+		for(var i=0;i<players.length;i++){
+			info.push({
+				name:players[i].name,
+				name2:players[i].name2,
+				identity:players[i].identity
+			});
+		}
+		_status.videoInited=true,
+		game.addVideo('init',null,info);
+
+		game.gameDraw(game.zhong||game.zhu);
+		game.phaseLoop(game.zhong||game.zhu);
+	},
 	game:{
+		getState:function(){
+			var state={};
+			for(var i in lib.playerOL){
+				var player=lib.playerOL[i];
+				state[i]={identity:player.identity};
+				if(player==game.zhu){
+					state[i].zhu=player.isZhu?true:false;
+				}
+				if(player==game.zhong){
+					state[i].zhong=true;
+				}
+				state[i].shown=player.ai.shown;
+			}
+			return state;
+		},
+		updateState:function(state){
+			for(var i in state){
+				var player=lib.playerOL[i];
+				if(player){
+					player.identity=state[i].identity;
+					if(typeof state[i].zhu=='boolean'){
+						game.zhu=player;
+						player.isZhu=state[i].zhu;
+					}
+					if(state[i].zhong){
+						game.zhong=player;
+					}
+					player.ai.shown=state[i].shown;
+				}
+			}
+		},
+		getRoomInfo:function(uiintro){
+			uiintro.add('<div class="text chat">游戏模式：'+(lib.configOL.identity_mode=='zhong'?'明忠':'普通'));
+			uiintro.add('<div class="text chat">双将模式：'+(lib.configOL.double_character?'开启':'关闭'));
+			uiintro.add('<div class="text chat">双内奸：'+(lib.configOL.double_nei?'开启':'关闭'));
+			uiintro.add('<div class="text chat">出牌时限：'+lib.configOL.choose_timeout+'秒').style.paddingBottom='8px';
+		},
 		getIdentityList:function(player){
 			if(player.identityShown) return;
 			if(player==game.me) return;
@@ -71,217 +401,6 @@ mode.identity={
 				game.saveConfig('gameRecord',lib.config.gameRecord);
 			}
 		},
-		start:function(){
-			var next=game.createEvent('game',false);
-			next.content=function(){
-				"step 0"
-				if(lib.db&&!_status.characterLoaded){
-					_status.waitingForCharacters=true;
-					game.pause();
-				}
-				if(!lib.config.new_tutorial){
-					ui.arena.classList.add('only_dialog');
-				}
-				_status.mode=get.config('identity_mode');
-				"step 1"
-				var playback=localStorage.getItem(lib.configprefix+'playback');
-				if(playback){
-					ui.create.me();
-					ui.arena.style.display='none';
-					ui.system.style.display='none';
-					_status.playback=playback;
-					localStorage.removeItem(lib.configprefix+'playback');
-					var store=lib.db.transaction(['video'],'readwrite').objectStore('video');
-					store.get(parseInt(playback)).onsuccess=function(e){
-						if(e.target.result){
-							game.playVideoContent(e.target.result.video);
-						}
-						else{
-							alert('播放失败：找不到录像');
-							game.reload();
-						}
-					}
-					event.finish();
-				}
-				else{
-					if(_status.mode=='zhong'){
-						game.prepareArena(8);
-					}
-					else{
-						game.prepareArena();
-					}
-					if(!lib.config.new_tutorial){
-						game.delay();
-					}
-				}
-				"step 2"
-				if(!lib.config.new_tutorial){
-					game.saveConfig('version',lib.version);
-					var clear=function(){
-						ui.dialog.close();
-						while(ui.controls.length) ui.controls[0].close();
-					};
-					var clear2=function(){
-						ui.auto.show();
-						ui.arena.classList.remove('only_dialog');
-					};
-					var step1=function(){
-						ui.create.dialog('欢迎来到无名杀，是否进入新手向导？');
-						game.saveConfig('new_tutorial',true);
-						ui.dialog.add('<div class="text center">跳过后，你可以在选项-其它中重置新手向导');
-						ui.auto.hide();
-						ui.create.control('跳过向导',function(){
-							clear();
-							clear2();
-							game.resume();
-						});
-						ui.create.control('继续',step2);
-					}
-					var step2=function(){
-						if(lib.config.layout!='phone'){
-							clear();
-							ui.create.dialog('如果你在使用手机，可能会觉得按钮有点小'+
-							'，将布局改成移动可以使按钮变大');
-							ui.dialog.add('<div class="text center">你可以在选项-外观-布局中更改此设置');
-							var lcontrol=ui.create.control('使用移动布局',function(){
-								if(lib.config.layout=='phone'){
-									ui.control.firstChild.firstChild.innerHTML='使用移动布局';
-									lib.init.layout('mobile');
-								}
-								else{
-									ui.control.firstChild.firstChild.innerHTML='使用默认布局';
-									lib.init.layout('phone');
-								}
-							});
-							ui.create.control('继续',step3);
-						}
-						else{
-							step3();
-						}
-					};
-					var step3=function(){
-						if(lib.config.touchscreen){
-							clear();
-							ui.create.dialog('触屏模式中，下划可以显示菜单，上划可以切换托管，双指单击可以暂停');
-							ui.dialog.add('<div class="text center">你可以在选项-通用-中更改手势设置');
-							ui.create.control('继续',step4);
-						}
-						else{
-							step4();
-						}
-					};
-					var step4=function(){
-						clear();
-						ui.window.classList.add('noclick_important');
-						ui.click.configMenu();
-						ui.control.classList.add('noclick_click_important');
-						ui.control.style.top='calc(100% - 105px)';
-						ui.create.control('在菜单中，可以进行各项设置',function(){
-							ui.click.menuTab('选项');
-							ui.controls[0].replace('如果你感到游戏较卡，可以开启流畅模式',function(){
-								ui.controls[0].replace('在技能一栏中，可以设置自动发动或双将禁配的技能',function(){
-									ui.click.menuTab('武将');
-									ui.controls[0].replace('在武将或卡牌一栏中，单击武将/卡牌可以将其禁用',function(){
-										ui.click.menuTab('战局');
-										ui.controls[0].replace('在战局中可以输入游戏命令，或者管理录像',function(){
-											ui.click.configMenu();
-											ui.window.classList.remove('noclick_important');
-											ui.control.classList.remove('noclick_click_important');
-											ui.control.style.top='';
-											step5();
-										});
-									});
-								});
-							});
-						})
-					};
-					var step5=function(){
-						clear();
-						ui.create.dialog('如果还有其它问题，欢迎来到百度无名杀吧进行交流');
-						ui.create.control('完成',function(){
-							clear();
-							clear2();
-							game.resume();
-						})
-					};
-					game.pause();
-					step1();
-				}
-				else{
-					game.showChangeLog();
-				}
-				"step 3"
-				if(lib.storage.test){
-					lib.config.game_speed='vfast';
-					_status.auto=true;
-					ui.auto.classList.add('glow');
-				}
-				game.chooseCharacter();
-				"step 4"
-				if(ui.coin){
-					_status.coinCoeff=get.coinCoeff([game.me.name]);
-				}
-				if(game.players.length==2){
-					game.showIdentity(true);
-				}
-				else{
-					for(var i=0;i<game.players.length;i++){
-						game.players[i].ai.shown=0;
-					}
-				}
-				game.zhu.ai.shown=1;
-				if(game.zhu2){
-					game.zhong=game.zhu;
-					game.zhu=game.zhu2;
-					delete game.zhu2;
-				}
-				if(_status.mode!='zhong'&&get.config('enhance_zhu')&&get.population('fan')>=3){
-					var skill;
-					switch(game.zhu.name){
-						case 'liubei':skill='jizhen';break;
-						case 'dongzhuo':skill='hengzheng';break;
-						case 'sunquan':skill='batu';break;
-						case 'sp_zhangjiao':skill='tiangong';break;
-						case 'liushan':skill='shengxi';break;
-						case 'sunce':skill='ciqiu';break;
-						case 'yuanshao':skill='geju';break;
-						case 're_caocao':skill='dangping';break;
-						case 'caopi':skill='junxing';break;
-						case 'liuxie':skill='moukui';break;
-						default:skill='tianming';break;
-					}
-					game.zhu.addSkill(skill);
-					game.zhu.storage.enhance_zhu=skill;
-				}
-				if(lib.storage.test){
-					var str='';
-					for(var i=0;i<game.players.length;i++){
-						str+=get.translation(game.players[i]);
-						if(game.players[i]==game.zhu) str+='（主）';
-						str+=' ';
-					}
-					console.log(str);
-					game.showIdentity();
-				}
-				lib.config.ai_guess=true;
-				event.trigger('gameStart');
-
-				var players=get.players(lib.sort.position);
-				var info=[];
-				for(var i=0;i<players.length;i++){
-					info.push({
-						name:players[i].name,
-						name2:players[i].name2,
-						identity:players[i].identity
-					});
-				}
-				_status.videoInited=true,
-				game.addVideo('init',null,info);
-
-				game.gameDraw(game.zhong||game.zhu);
-				game.phaseLoop(game.zhong||game.zhu);
-			}
-		},
 		showIdentity:function(me){
 			for(var i=0;i<game.players.length;i++){
 				// if(me===false&&game.players[i]==game.me) continue;
@@ -341,6 +460,17 @@ mode.identity={
 				else{
 					game.over(false);
 				}
+			}
+		},
+		checkOnlineResult:function(player){
+			if(game.zhu.isAlive()){
+				return (player.identity=='zhu'||player.identity=='zhong');
+			}
+			else if(game.players.length==1&&game.players[0].identity=='nei'){
+				return player.isAlive();
+			}
+			else{
+				return player.identity=='fan';
 			}
 		},
 		chooseCharacter:function(){
@@ -612,14 +742,7 @@ mode.identity={
 				game.me.setIdentity();
 				for(i in lib.character){
 					if(chosen.contains(i)) continue;
-					if(lib.character[i][4]&&lib.character[i][4].contains('forbidai')) continue;
-					if(lib.config.forbidai.contains(i)) continue;
-					if(lib.config.forbidall.contains(i)) continue;
-					if(lib.config.banned.contains(i)) continue;
-					if(!get.config('double_character')&&get.config('ban_weak')&&
-					(lib.config.forbidsingle.contains(i)||lib.rank.c.contains(i)||lib.rank.d.contains(i))) continue;
-					if(get.config('ban_strong')&&(lib.rank.s.contains(i)||lib.rank.ap.contains(i))) continue;
-					if(get.config('double_character')&&lib.config.forbiddouble.contains(i)) continue;
+					if(lib.filter.characterDisabled(i)) continue;
 					event.list.push(i);
 					if(lib.character[i][4]&&lib.character[i][4].contains('zhu')){
 						list2.push(i);
@@ -750,6 +873,7 @@ mode.identity={
 				else{
 					game.me.init(result.buttons[0].link)
 				}
+				game.addRecentCharacter(game.me.name,game.me.name2);
 				event.list.remove(game.me.name);
 				event.list.remove(game.me.name2);
 				if(game.me==game.zhu&&game.players.length>4){
@@ -762,6 +886,194 @@ mode.identity={
 						event.ai(game.players[i],event.list.splice(0,get.config('choice_'+game.players[i].identity)),null,event.list)
 					}
 				}
+			}
+		},
+		chooseCharacterOL:function(){
+			var next=game.createEvent('chooseCharacter',false);
+			next.content=function(){
+				"step 0"
+				var i;
+				var identityList;
+				if(_status.mode=='zhong'){
+					event.zhongmode=true;
+					identityList=['zhu','zhong','mingzhong','nei','fan','fan','fan','fan'];
+				}
+				else{
+					identityList=lib.config.mode_config.identity.identity[game.players.length-2].slice(0);
+					if(get.config('double_nei')){
+						switch(get.config('player_number')){
+							case '8':
+							identityList.remove('fan');
+							identityList.push('nei');
+							break;
+							case '7':
+							identityList.remove('zhong');
+							identityList.push('nei');
+							break;
+							case '6':
+							identityList.remove('fan');
+							identityList.push('nei');
+							break;
+							case '5':
+							identityList.remove('fan');
+							identityList.push('nei');
+							break;
+							case '4':
+							identityList.remove('zhong');
+							identityList.push('nei');
+							break;
+							case '3':
+							identityList.remove('fan');
+							identityList.push('nei');
+							break;
+						}
+					}
+				}
+				identityList.randomSort();
+				for(i=0;i<game.players.length;i++){
+					game.players[i].identity=identityList[i];
+					game.players[i].setIdentity('cai');
+					if(event.zhongmode){
+						if(identityList[i]=='mingzhong'){
+							game.zhu=game.players[i];
+						}
+						else if(identityList[i]=='zhu'){
+							game.zhu2=game.players[i];
+						}
+					}
+					else{
+						if(identityList[i]=='zhu'){
+							game.zhu=game.players[i];
+						}
+					}
+					game.players[i].identityShown=false;
+				}
+				game.zhu.setIdentity();
+				game.zhu.identityShown=true;
+				game.zhu.isZhu=(game.zhu.identity=='zhu');
+				game.me.setIdentity();
+
+				for(var i=0;i<game.players.length;i++){
+					game.players[i].send(function(zhu,zhuid,me,identity){
+						for(var i in lib.playerOL){
+							lib.playerOL[i].setIdentity('cai');
+						}
+						zhu.identityShown=true;
+						zhu.identity=zhuid;
+						zhu.setIdentity();
+						me.setIdentity(identity);
+					},game.zhu,game.zhu.identity,game.players[i],game.players[i].identity);
+				}
+
+				var list;
+				var list2=[];
+				var list3=[];
+				event.list=[];
+
+				var libCharacter={};
+				for(var i=0;i<lib.configOL.characterPack.length;i++){
+					var pack=lib.characterPack[lib.configOL.characterPack[i]];
+					for(var j in pack){
+						if(j=='zuoci') continue;
+						if(lib.character[j]) libCharacter[j]=pack[j];
+					}
+				}
+				for(i in libCharacter){
+					if(libCharacter[i][4]&&libCharacter[i][4].contains('forbidai')) continue;
+					if(lib.config.forbidai.contains(i)) continue;
+					// if(lib.config.forbidall.contains(i)) continue;
+					if(lib.config.banned.contains(i)) continue;
+					if(!get.config('double_character')&&get.config('ban_weak')&&
+					(lib.config.forbidsingle.contains(i)||lib.rank.c.contains(i)||lib.rank.d.contains(i))) continue;
+					if(get.config('ban_strong')&&(lib.rank.s.contains(i)||lib.rank.ap.contains(i))) continue;
+					if(get.config('double_character')&&lib.config.forbiddouble.contains(i)) continue;
+					event.list.push(i);
+					if(libCharacter[i][4]&&libCharacter[i][4].contains('zhu')){
+						list2.push(i);
+					}
+					else{
+						list3.push(i);
+					}
+				}
+				if(event.zhongmode){
+					list=event.list.randomGets(6);
+				}
+				else{
+					list=list2.concat(list3.randomGets(3));
+				}
+				var next=game.zhu.chooseButton(true);
+				next.set('selectButton',(lib.configOL.double_character?2:1));
+				next.set('createDialog',['选择角色',[list,'character']]);
+				next.set('callback',function(player,result){
+					player.init(result.links[0],result.links[1]);
+				});
+				next.set('ai',function(button){
+					return Math.random();
+				});
+				"step 1"
+				if(game.me!=game.zhu){
+					game.zhu.init(result.links[0],result.links[1])
+				}
+				event.list.remove(game.zhu.name);
+				event.list.remove(game.zhu.name2);
+
+				if(game.players.length>4){
+					game.zhu.maxHp++;
+					game.zhu.hp++;
+					game.zhu.update();
+				}
+				game.broadcast(function(zhu,name,name2,addMaxHp){
+					if(game.zhu!=game.me){
+						zhu.init(name,name2);
+					}
+					if(addMaxHp){
+						zhu.maxHp++;
+						zhu.hp++;
+						zhu.update();
+					}
+				},game.zhu,game.zhu.name,game.zhu.name2,game.players.length>4);
+
+				var list=[];
+				var selectButton=(lib.configOL.double_character?2:1);
+				for(var i=0;i<game.players.length;i++){
+					if(game.players[i]!=game.zhu){
+						var num;
+						if(event.zhongmode){
+							num=3;
+						}
+						else{
+							if(game.players[i].identity=='nei'){
+								num=7;
+							}
+							else{
+								num=5;
+							}
+						}
+						list.push([game.players[i],['选择角色',[event.list.randomRemove(num),'character']],selectButton,true]);
+					}
+				}
+				game.me.chooseButtonOL(list,function(player,result){
+					if(game.online||player==game.me) player.init(result.links[0],result.links[1]);
+				});
+				"step 2"
+				for(var i in result){
+					if(result[i]=='ai'){
+						result[i]=event.list.randomRemove(lib.configOL.double_character?2:1);
+					}
+					else{
+						result[i]=result[i].links
+					}
+					if(!lib.playerOL[i].name){
+						lib.playerOL[i].init(result[i][0],result[i][1]);
+					}
+				}
+				game.broadcast(function(result){
+					for(var i in result){
+						if(!lib.playerOL[i].name){
+							lib.playerOL[i].init(result[i][0],result[i][1]);
+						}
+					}
+				},result);
 			}
 		},
 	},
@@ -787,46 +1099,8 @@ mode.identity={
 	},
 	element:{
 		player:{
-			dieSpeak:function(){
-				// switch(this.identity){
-				// 	case 'zhu': this.popup('吾降矣',2000);break;
-				// 	case 'zhong': this.popup('呃啊',2000);break;
-				// 	case 'nei': this.popup('啊，被看穿了',2000);break;
-				// 	case 'fan': this.popup('饶命啊',2000);break;
-				// }
-			},
-			dieAfter:function(source){
-				this.dieSpeak();
-				if(get.config('show_identity')&&!this.identityShown){
-					this.setIdentity(this.identity);
-					this.identityShown=true;
-				}
-				game.checkResult();
-				if(this.identity=='fan'&&source) source.draw(3);
-				else if(this.identity=='zhong'&&source&&source.identity=='zhu'&&source.isZhu){
-					source.discard(source.get('he'));
-				}
-				if(game.zhu.storage.enhance_zhu&&get.population('fan')<3){
-					game.zhu.removeSkill(game.zhu.storage.enhance_zhu);
-					delete game.zhu.storage.enhance_zhu;
-				}
-				if(this==game.zhong){
-					game.zhu.identityShown=true;
-					game.zhu.ai.shown=1;
-					game.zhu.setIdentity();
-					game.zhu.isZhu=true;
-					delete game.zhong;
-					if(lib.config.animation&&!lib.config.low_performance) game.zhu.$legend();
-					game.delay(2);
-					game.zhu.playerfocus(1000);
-					if(_status.clickingidentity&&_status.clickingidentity[0]==game.zhu){
-						for(var i=0;i<_status.clickingidentity[1].length;i++){
-							_status.clickingidentity[1][i].delete();
-							_status.clickingidentity[1][i].style.transform='';
-						}
-						delete _status.clickingidentity;
-					}
-				}
+			$dieAfter:function(){
+				if(_status.video) return;
 				if(!this.node.dieidentity){
 					var node=ui.create.div('.damage.dieidentity',get.translation(this.identity+'2'),this);
 					ui.refresh(node);
@@ -849,6 +1123,81 @@ mode.identity={
 					this.node.dieidentity.style.transform='';
 				}
 			},
+			dieSpeak:function(){
+				// switch(this.identity){
+				// 	case 'zhu': this.popup('吾降矣',2000);break;
+				// 	case 'zhong': this.popup('呃啊',2000);break;
+				// 	case 'nei': this.popup('啊，被看穿了',2000);break;
+				// 	case 'fan': this.popup('饶命啊',2000);break;
+				// }
+			},
+			dieAfter:function(source){
+				this.dieSpeak();
+				if(!this.identityShown){
+					game.broadcastAll(function(player){
+						player.setIdentity(player.identity);
+						player.identityShown=true;
+					},this);
+				}
+				game.checkResult();
+				if(game.zhu.isZhu){
+					if(get.population('zhong')+get.population('nei')==0||
+					get.population('zhong')+get.population('fan')==0){
+						game.broadcastAll(game.showIdentity);
+					}
+				}
+				if(this.identity=='fan'&&source) source.draw(3);
+				else if(this.identity=='zhong'&&source&&source.identity=='zhu'&&source.isZhu){
+					source.discard(source.get('he'));
+				}
+				if(game.zhu.storage.enhance_zhu&&get.population('fan')<3){
+					game.zhu.removeSkill(game.zhu.storage.enhance_zhu);
+					delete game.zhu.storage.enhance_zhu;
+				}
+				if(this==game.zhong){
+					game.broadcastAll(function(player){
+						game.zhu=player;
+						game.zhu.identityShown=true;
+						game.zhu.ai.shown=1;
+						game.zhu.setIdentity();
+						game.zhu.isZhu=true;
+						if(lib.config.animation&&!lib.config.low_performance) game.zhu.$legend();
+						delete game.zhong;
+						if(_status.clickingidentity&&_status.clickingidentity[0]==game.zhu){
+							for(var i=0;i<_status.clickingidentity[1].length;i++){
+								_status.clickingidentity[1][i].delete();
+								_status.clickingidentity[1][i].style.transform='';
+							}
+							delete _status.clickingidentity;
+						}
+					},game.zhu);
+					game.delay(2);
+					game.zhu.playerfocus(1000);
+				}
+
+				if(!_status.over){
+					var giveup;
+					if(get.population('fan')+get.population('nei')==1){
+						for(var i=0;i<game.players.length;i++){
+							if(game.players[i].identity=='fan'||game.players[i].identity=='nei'){
+								giveup=game.players[i];break;
+							}
+						}
+					}
+					else if(get.population('zhong')+get.population('mingzhong')+get.population('nei')==0){
+						giveup=game.zhu;
+					}
+					if(giveup){
+						if(giveup==game.me){
+							ui.create.giveup();
+						}
+						else if(giveup.isOnline2()){
+							giveup.send(ui.create.giveup);
+						}
+					}
+				}
+
+			},
 			logAi:function(targets,card){
 				if(this.ai.shown==1) return;
 				if(typeof targets=='number'){
@@ -867,7 +1216,11 @@ mode.identity={
 							else if(shown<0.4) c=0.5;
 							else if(shown<0.6) c=0.8;
 							else c=1;
-							effect+=ai.get.effect(targets[i],card,this)*c;
+							var eff=ai.get.effect(targets[i],card,this);
+							effect+=eff*c;
+							if(eff==0&&shown==0&&this.identity=='zhong'&&targets[i]!=this){
+								effect+=0.1;
+							}
 						}
 					}
 					if(effect>0){
@@ -887,8 +1240,9 @@ mode.identity={
 				if(this.ai.shown>0.95) this.ai.shown=0.95;
 				if(this.ai.shown<-0.5) this.ai.shown=-0.5;
 
-				if(this!=game.me&&get.config('auto_mark_identity')&&this.ai.identity_mark!='finished'){
-					if(_status.clickingidentity&&_status.clickingidentity[0]==this){
+				var marknow=(!_status.connectMode&&this!=game.me&&get.config('auto_mark_identity')&&this.ai.identity_mark!='finished');
+				if(true){
+					if(marknow&&_status.clickingidentity&&_status.clickingidentity[0]==this){
 						for(var i=0;i<_status.clickingidentity[1].length;i++){
 							_status.clickingidentity[1][i].delete();
 							_status.clickingidentity[1][i].style.transform='';
@@ -927,28 +1281,28 @@ mode.identity={
 						}
 					}
 					if(this.identity=='nei'){
-						if(effect>=0){
+						if(effect>0){
 							if(this.ai.identity_mark=='fan'){
-								this.setIdentity();
+								if(marknow) this.setIdentity();
 								this.ai.identity_mark='finished';
 							}
 							else{
-								this.setIdentity('zhong');
+								if(marknow) this.setIdentity('zhong');
 								this.ai.identity_mark='zhong';
 							}
 						}
-						else{
+						else if(effect<0&&get.population('fan')>0){
 							if(this.ai.identity_mark=='zhong'){
-								this.setIdentity();
+								if(marknow) this.setIdentity();
 								this.ai.identity_mark='finished';
 							}
 							else{
-								this.setIdentity('fan');
+								if(marknow) this.setIdentity('fan');
 								this.ai.identity_mark='fan';
 							}
 						}
 					}
-					else{
+					else if(marknow){
 						if(effect>0&&this.identity!='fan'){
 							this.setIdentity('zhong');
 							this.ai.identity_mark='finished';
@@ -959,12 +1313,14 @@ mode.identity={
 						}
 					}
 				}
+
 			},
 		}
 	},
 	ai:{
 		get:{
 			attitude:function(from,to){
+				if(!from||!to) return 0;
 				var x=0,num=0,temp,i;
 				if(_status.ai.customAttitude){
 					for(i=0;i<_status.ai.customAttitude.length;i++){
@@ -980,7 +1336,7 @@ mode.identity={
 				}
 				var difficulty=0;
 				if(to==game.me) difficulty=2-get.difficulty();
-				if(get.config('ai_identity')||from==to||!lib.config.ai_guess||(to.identityShown)){
+				if(from==to||to.identityShown){
 					return ai.get.realAttitude(from,to)+difficulty*1.5;
 				}
 				else{
@@ -992,17 +1348,41 @@ mode.identity={
 							}
 						}
 					}
-					return ai.get.realAttitude(from,to)*to.ai.shown+difficulty*1.5;
+					var aishown=to.ai.shown;
+					if(to.identity=='nei'&&to.ai.shown<1&&(to.ai.identity_mark=='fan'||to.ai.identity_mark=='zhong')){
+						aishown=0.5;
+					}
+					else if(aishown==0&&to.identity!='fan'&&to.identity!='zhu'){
+						var fanshown=true;
+						for(var i=0;i<game.players.length;i++){
+							if(game.players[i].identity=='fan'&&game.players[i].ai.shown==0&&game.players[i]!=from){
+								fanshown=false;break;
+							}
+						}
+						if(fanshown) aishown=0.3;
+					}
+					return ai.get.realAttitude(from,to)*aishown+difficulty*1.5;
 				}
 			},
 			realAttitude:function(from,to){
-				// if(_status.currentPhase==from&&from.ai.tempIgnore&&from.ai.tempIgnore.contains(to)) return 0;
 				var situation=ai.get.situation();
 				var identity=from.identity;
 				var identity2=to.identity;
 				if(identity2=='zhu'&&!to.isZhu){
 					identity2='zhong';
 					if(from==to) return 10;
+				}
+				if(from!=to&&to.identity=='nei'&&to.ai.shown<1&&(to.ai.identity_mark=='fan'||to.ai.identity_mark=='zhong')){
+					identity2=to.ai.identity_mark;
+				}
+				if(from.identity!='nei'&&from!=to&&get.population('fan')==0&&identity2=='zhong'){
+					for(var i=0;i<game.players.length;i++){
+						if(game.players[i].identity=='nei'&&
+						game.players[i].ai.identity_mark=='zhong'&&
+						game.players[i].ai.shown<1){
+							identity2='nei';break;
+						}
+					}
 				}
 				var zhongmode=false;
 				if(!game.zhu.isZhu){
@@ -1015,11 +1395,44 @@ mode.identity={
 							case 'zhong':case 'mingzhong': return 6;
 							case 'nei':
 								if(game.players.length==2) return -10;
-								if(zhongmode&&to.ai.sizhong) return 6;
-								if(get.population('fan')==0) return -0.5;
+								if(to.identity=='zhong') return 0;
+								if(get.population('fan')==0){
+									if(to.ai.identity_mark=='zhong'&&to.ai.shown<1) return 0;
+									return -0.5;
+								}
+								if(zhongmode&&to.ai.sizhong&&to.ai.shown<1) return 6;
+								if(get.population('fan')==1&&get.population('nei')==1&&game.players.length==3){
+									var fan;
+									for(var i=0;i<game.players.length;i++){
+										if(game.players[i].identity=='fan'){
+											fan=game.players[i];break;
+										}
+									}
+									if(fan){
+										if(to.hp>1&&to.hp>fan.hp&&to.num('he')>fan.num('he')){
+											return -3;
+										}
+									}
+									return 0;
+								}
 								if(situation>1) return 0;
 								return Math.min(3,get.population('fan'));
-							case 'fan': return -4;
+							case 'fan':
+								if(get.population('fan')==1&&get.population('nei')==1&&game.players.length==3){
+									var nei;
+									for(var i=0;i<game.players.length;i++){
+										if(game.players[i].identity=='nei'){
+											nei=game.players[i];break;
+										}
+									}
+									if(nei){
+										if(nei.hp>1&&nei.hp>to.hp&&nei.num('he')>to.num('he')){
+											return 0;
+										}
+									}
+									return -3;
+								}
+								return -4;
 						}
 						break;
 					case 'zhong':case 'mingzhong':
@@ -1027,8 +1440,8 @@ mode.identity={
 							case 'zhu': return 10;
 							case 'zhong':case 'mingzhong': return 4;
 							case 'nei':
-								if(zhongmode&&to.ai.sizhong) return 6;
 								if(get.population('fan')==0) return -2;
+								if(zhongmode&&to.ai.sizhong&&to.ai.shown<1) return 6;
 								return Math.min(3,-situation);
 							case 'fan': return -8;
 						}
@@ -1121,8 +1534,12 @@ mode.identity={
 									if(situation==1) return -6;
 									if(situation>1) return -5;
 								}
-								return -10;
-							case 'zhong': return -7;
+								return -8;
+							case 'zhong':
+								if(!zhongmode&&game.zhu.hp>=3&&to.hp==1){
+									return -10;
+								}
+								return -7;
 							case 'mingzhong':return -5;
 							case 'nei':
 								if(zhongmode&&to.ai.sizhong) return -7;
@@ -1177,8 +1594,10 @@ mode.identity={
 			}
 		}
 	},
-	config:['player_number','double_character','double_hp',
-	'ban_weak','enhance_zhu','free_choose','change_identity',
-	'change_choice','change_card','dierestart','swap','revive',
-	'auto_identity','ai_strategy','ai_identity','difficulty']
+	help:{
+		'身份模式':'<div style="margin:10px">选项</div><ul style="margin-top:0"><li>加强主公<br>反贼人数多于2时主公会额外增加一个技能（每个主公的额外技能固定，非常备主公增加天命）</ul>'+
+		'<div style="margin:10px">明忠</div><ul style="margin-top:0"><li>本模式需要8名玩家进行游戏，使用的身份牌为：1主公、2忠臣、4反贼和1内奸。游戏开始时，每名玩家随机获得一个身份，由系统随机选择一名忠臣身份的玩家亮出身份（将忠臣牌正面朝上放在面前），其他身份（包括主公）的玩家不亮出身份。<li>'+
+		'首先由亮出身份的忠臣玩家随机获得六张武将牌，挑选一名角色，并将选好的武将牌展示给其他玩家。之后其余每名玩家随机获得三张武将牌，各自从其中挑选一张同时亮出<li>'+
+		'亮出身份牌的忠臣增加1点体力上限。角色濒死和死亡的结算及胜利条件与普通身份局相同。',
+	}
 }

@@ -62,14 +62,15 @@ character.standard={
 				}
 				else if(event.current.group=='wei'){
 					if((event.current==game.me&&!_status.auto)||(
-						ai.get.attitude(event.current,player)>2)){
-					var next=event.current.chooseToRespond('是否替'+get.translation(player)+'打出一张闪？',{name:'shan'});
-					next.ai=function(){
-						var event=_status.event;
-						return (ai.get.attitude(event.player,event.source)-2);
-					};
-					next.autochoose=lib.filter.autoRespondShan;
-					next.source=player;
+						ai.get.attitude(event.current,player)>2)||
+						event.current.isOnline()){
+						var next=event.current.chooseToRespond('是否替'+get.translation(player)+'打出一张闪？',{name:'shan'});
+						next.set('ai',function(){
+							var event=_status.event;
+							return (ai.get.attitude(event.player,event.source)-2);
+						});
+						next.autochoose=lib.filter.autoRespondShan;
+						next.set('source',player);
 					}
 				}
 				"step 1"
@@ -122,7 +123,7 @@ character.standard={
 				"step 1"
 				if(result.bool){
 					player.logSkill('fankui',trigger.source);
-					player.gain(result.buttons[0].link);
+					player.gain(result.links[0]);
 					trigger.source.$give(1,player);
 				}
 			},
@@ -147,10 +148,11 @@ character.standard={
 			content:function(){
 				"step 0"
 				player.chooseCard(get.translation(trigger.player)+'的'+(trigger.judgestr||'')+'判定为'+
-				get.translation(trigger.player.judging[0])+'，是否发动【鬼才】？').ai=function(card){
-					var trigger=_status.event.parent._trigger;
+				get.translation(trigger.player.judging[0])+'，是否发动【鬼才】？').set('ai',function(card){
+					var trigger=_status.event.getParent()._trigger;
 					var player=_status.event.player;
-					var result=trigger.judge(card)-trigger.judge(trigger.player.judging[0]);
+					var judging=_status.event.judging;
+					var result=trigger.judge(card)-trigger.judge(judging);
 					var attitude=ai.get.attitude(player,trigger.player);
 					if(attitude==0||result==0) return 0;
 					if(attitude>0){
@@ -159,7 +161,7 @@ character.standard={
 					else{
 						return -result-ai.get.value(card)/2;
 					}
-				};
+				}).set('judging',trigger.player.judging[0]);
 				"step 1"
 				if(result.bool){
 					player.respond(result.cards,'highlight');
@@ -171,7 +173,12 @@ character.standard={
 				if(result.bool){
 					player.logSkill('guicai');
 					if(trigger.player.judging[0].clone){
-						trigger.player.judging[0].clone.delete();
+						trigger.player.judging[0].clone.classList.remove('thrownhighlight');
+						game.broadcast(function(card){
+							if(card.clone){
+								card.clone.classList.remove('thrownhighlight');
+							}
+						},trigger.player.judging[0]);
 						game.addVideo('deletenode',player,get.cardsInfo([trigger.player.judging[0].clone]));
 					}
 					ui.discardPile.appendChild(trigger.player.judging[0]);
@@ -206,9 +213,9 @@ character.standard={
 				if(result.judge<2){
 					event.finish();return;
 				}
-				trigger.source.chooseToDiscard(2).ai=function(card){
+				trigger.source.chooseToDiscard(2).set('ai',function(card){
 					return ai.get.unuseful(card)+2.5*(5-get.owner(card).hp);
-				};
+				});
 				"step 2"
 				if(result.bool==false){
 					trigger.source.damage();
@@ -240,11 +247,10 @@ character.standard={
 				check=(num>=2);
 				player.chooseTarget('是否发动【突袭】？',[1,2],function(card,player,target){
 					return target.num('h')>0&&player!=target;
-				},
-					function(target){
-					if(!check) return 0;
+				},function(target){
+					if(!_status.event.aicheck) return 0;
 					return (1-ai.get.attitude(_status.event.player,target));
-				});
+				}).set('aicheck',check);
 				"step 1"
 				if(result.bool){
 					player.logSkill('tuxi',result.targets);
@@ -287,8 +293,7 @@ character.standard={
 		luoyi2:{
 			trigger:{source:'damageBegin'},
 			filter:function(event){
-				return event.card&&(event.card.name=='sha'||event.card.name=='juedou')&&
-				event.parent.name!='_lianhuan'&&event.parent.name!='_lianhuan2';
+				return event.card&&(event.card.name=='sha'||event.card.name=='juedou')&&event.notLink();
 			},
 			forced:true,
 			content:function(){
@@ -319,7 +324,7 @@ character.standard={
 				"step 2"
 				player.chooseCardTarget({
 					filterCard:function(card){
-						return _status.event.parent.cards.contains(card);
+						return _status.event.getParent().cards.contains(card);
 					},
 					selectCard:[1,event.cards.length],
 					filterTarget:function(card,player,target){
@@ -550,12 +555,12 @@ character.standard={
 				else if(event.current.group=='shu'){
 					player.storage.jijianging=true;
 					var next=event.current.chooseToRespond('是否替'+get.translation(player)+'打出一张杀？',{name:'sha'});
-					next.ai=function(){
+					next.set('ai',function(){
 						var event=_status.event;
 						return (ai.get.attitude(event.player,event.source)-2);
-					};
+					});
+					next.set('source',player);
 					next.autochoose=lib.filter.autoRespondSha;
-					next.source=player;
 				}
 				else{
 					event.current=event.current.next;
@@ -583,6 +588,7 @@ character.standard={
 			audio:2,
 			audioname:['liushan'],
 			enable:'chooseToUse',
+			usable:20,
 			filter:function(event,player){
 				if(event.filterCard&&!event.filterCard({name:'sha'},player)) return false;
 				if(!player.isZhu) return false;
@@ -607,19 +613,22 @@ character.standard={
 				if(event.current==undefined) event.current=player.next;
 				if(event.current==player){
 					player.addTempSkill('jijiang3','phaseAfter');
-					event.parent.parent.step=0;
+					event.getParent(2).step=0;
 					event.finish();
 				}
 				else if(event.current.group=='shu'){
 					var next=event.current.chooseToRespond('是否替'+get.translation(player)+'对'+get.translation(target)+'使用一张杀',
-						function(card){return player.canUse(card,target)&&card.name=='sha';});
-					next.ai=function(card){
+					function(card){
+						var evt=_status.event.getParent();
+						return evt.player.canUse(card,evt.target)&&card.name=='sha';
+					});
+					next.set('ai',function(card){
 						var event=_status.event;
 						return ai.get.effect(event.target,card,event.source,event.player);
-					};
+					});
+					next.set('source',player);
+					next.set('target',target);
 					next.autochoose=lib.filter.autoRespondSha;
-					next.source=player;
-					next.target=target;
 				}
 				else{
 					event.current=event.current.next;
@@ -694,32 +703,99 @@ character.standard={
 				if(player.isUnderControl()){
 					game.modeSwapPlayer(player);
 				}
-				if(event.isMine()){
-					ui.auto.hide();
+				var cards=get.cards(Math.min(5,game.players.length));
+				event.cards=cards;
+				var switchToAuto=function(){
+					_status.imchoosing=false;
+					if(event.dialog) event.dialog.close();
+					if(event.control) event.control.close();
+					var top=[];
+					var judges=player.node.judges.childNodes;
+					var stopped=false;
+					if(!player.num('h','wuxie')){
+						for(var i=0;i<judges.length;i++){
+							var judge=get.judge(judges[i]);
+							cards.sort(function(a,b){
+								return judge(b)-judge(a);
+							});
+							if(judge(cards[0])<0){
+								stopped=true;break;
+							}
+							else{
+								top.unshift(cards.shift());
+							}
+						}
+					}
+					var bottom;
+					if(!stopped){
+						cards.sort(function(a,b){
+							return ai.get.value(b,player)-ai.get.value(a,player);
+						});
+						while(cards.length){
+							if(ai.get.value(cards[0],player)<=5) break;
+							top.unshift(cards.shift());
+						}
+					}
+					bottom=cards;
+					for(var i=0;i<top.length;i++){
+						ui.cardPile.insertBefore(top[i],ui.cardPile.firstChild);
+					}
+					for(i=0;i<bottom.length;i++){
+						ui.cardPile.appendChild(bottom[i]);
+					}
+					player.popup(get.cnNumber(top.length)+'上'+get.cnNumber(bottom.length)+'下');
+					game.log(player,'将'+get.cnNumber(top.length)+'张牌置于牌堆顶');
+					game.delay(2);
+				};
+				var chooseButton=function(online,player,cards){
+					var event=_status.event;
+					player=player||event.player;
+					cards=cards||event.cards;
 					event.top=[];
 					event.bottom=[];
 					event.status=true;
-					event.dialog=ui.create.dialog('按顺序选择置于牌堆顶的牌（先选择的在上）',get.cards(Math.min(5,game.players.length)));
+					event.dialog=ui.create.dialog('按顺序选择置于牌堆顶的牌（先选择的在上）',cards);
+					event.switchToAuto=function(){
+						event._result='ai';
+						event.dialog.close();
+						event.control.close();
+						_status.imchoosing=false;
+					},
 					event.control=ui.create.control('ok','pileTop','pileBottom',function(link){
 						var event=_status.event;
 						if(link=='ok'){
-							var i;
-							for(i=0;i<event.top.length;i++){
-								ui.cardPile.insertBefore(event.top[i].link,ui.cardPile.firstChild);
+							if(online){
+								event._result={
+									top:[],
+									bottom:[]
+								}
+								for(var i=0;i<event.top.length;i++){
+									event._result.top.push(event.top[i].link);
+								}
+								for(var i=0;i<event.bottom.length;i++){
+									event._result.bottom.push(event.bottom[i].link);
+								}
 							}
-							for(i=0;i<event.bottom.length;i++){
-								ui.cardPile.appendChild(event.bottom[i].link);
-							}
-							for(i=0;i<event.dialog.buttons.length;i++){
-								if(event.dialog.buttons[i].classList.contains('glow')==false&&
-									event.dialog.buttons[i].classList.contains('target')==false)
-								ui.cardPile.appendChild(event.dialog.buttons[i].link);
+							else{
+								var i;
+								for(i=0;i<event.top.length;i++){
+									ui.cardPile.insertBefore(event.top[i].link,ui.cardPile.firstChild);
+								}
+								for(i=0;i<event.bottom.length;i++){
+									ui.cardPile.appendChild(event.bottom[i].link);
+								}
+								for(i=0;i<event.dialog.buttons.length;i++){
+									if(event.dialog.buttons[i].classList.contains('glow')==false&&
+										event.dialog.buttons[i].classList.contains('target')==false)
+									ui.cardPile.appendChild(event.dialog.buttons[i].link);
+								}
+								player.popup(get.cnNumber(event.top.length)+'上'+get.cnNumber(event.cards.length-event.top.length)+'下');
+								game.log(player,'将'+get.cnNumber(event.top.length)+'张牌置于牌堆顶');
 							}
 							event.dialog.close();
 							event.control.close();
-							game.log(player,'将'+get.cnNumber(event.top.length)+'张牌置于牌堆顶');
-							ui.auto.show();
 							game.resume();
+							_status.imchoosing=false;
 						}
 						else if(link=='pileTop'){
 							event.status=true;
@@ -761,44 +837,42 @@ character.standard={
 						}
 					}
 					game.pause();
+					game.countChoose();
+				};
+				event.switchToAuto=switchToAuto;
+
+				if(event.isMine()){
+					chooseButton();
+					event.finish();
+				}
+				else if(event.isOnline()){
+					event.player.send(chooseButton,true,event.player,event.cards);
+					event.player.wait();
+					game.pause();
 				}
 				else{
-					var cards=get.cards(Math.min(5,game.players.length));
-					var top=[];
-					var judges=player.node.judges.childNodes;
-					var stopped=false;
-					if(!player.num('h','wuxie')){
-						for(var i=0;i<judges.length;i++){
-							var judge=get.judge(judges[i]);
-							cards.sort(function(a,b){
-								return judge(b)-judge(a);
-							});
-							if(judge(cards[0])<0){
-								stopped=true;break;
-							}
-							else{
-								top.unshift(cards.shift());
-							}
-						}
-					}
-					var bottom;
-					if(!stopped){
-						cards.sort(function(a,b){
-							return ai.get.value(b,player)-ai.get.value(a,player);
-						});
-						while(cards.length){
-							if(ai.get.value(cards[0],player)<=5) break;
-							top.unshift(cards.shift());
-						}
-					}
-					bottom=cards;
+					event.switchToAuto();
+					event.finish();
+				}
+				"step 1"
+				if(event.result=='ai'||!event.result){
+					event.switchToAuto();
+				}
+				else{
+					var top=event.result.top||[];
+					var bottom=event.result.bottom||[];
 					for(var i=0;i<top.length;i++){
 						ui.cardPile.insertBefore(top[i],ui.cardPile.firstChild);
 					}
 					for(i=0;i<bottom.length;i++){
 						ui.cardPile.appendChild(bottom[i]);
 					}
-					player.popup(get.cnNumber(top.length)+'上'+get.cnNumber(bottom.length)+'下');
+					for(i=0;i<event.cards.length;i++){
+						if(!top.contains(event.cards[i])&&!bottom.contains(event.cards[i])){
+							ui.cardPile.appendChild(event.cards[i]);
+						}
+					}
+					player.popup(get.cnNumber(top.length)+'上'+get.cnNumber(event.cards.length-top.length)+'下');
 					game.log(player,'将'+get.cnNumber(top.length)+'张牌置于牌堆顶');
 					game.delay(2);
 				}
@@ -945,7 +1019,9 @@ character.standard={
 			filterCard:true,
 			selectCard:[1,Infinity],
 			prompt:'弃置任意张牌并摸等量的牌',
-			check:function(card){return 6-ai.get.value(card)},
+			check:function(card){
+				return 6-ai.get.value(card)
+			},
 			content:function(){
 				player.draw(cards.length);
 			},
@@ -1044,14 +1120,14 @@ character.standard={
 			},
 			content:function(){
 				"step 0"
-				target.chooseControl('heart2','diamond2','club2','spade2').ai=function(event){
+				target.chooseControl('heart2','diamond2','club2','spade2').set('ai',function(event){
 					switch(Math.floor(Math.random()*6)){
 						case 0:return 'heart2';
 						case 1:case 4:case 5:return 'diamond2';
 						case 2:return 'club2';
 						case 3:return 'spade2';
 					}
-				};
+				});
 				"step 1"
 				game.log(target,'选择了'+get.translation(result.control));
 				event.choice=result.control;
@@ -1118,6 +1194,7 @@ character.standard={
 				var next=player.chooseCardTarget({
 					position:'he',
 					filterTarget:function(card,player,target){
+						var trigger=_status.event.getParent()._trigger;
 						if(get.distance(player,target,'attack')<=1&&
 							target!=trigger.player&&target!=player){
 							if(player.canUse(trigger.card,target)) return true;
@@ -1349,12 +1426,12 @@ character.standard={
 				"step 0"
 				var next=trigger.target.chooseToRespond({name:'shan'});
 				next.autochoose=lib.filter.autoRespondShan;
-				next.ai=function(card){
-					if(trigger.target.num('h','shan')>1){
+				next.set('ai',function(card){
+					if(_status.event.player.num('h','shan')>1){
 						return ai.get.unuseful2(card);
 					}
 					return -1;
-				};
+				});
 				"step 1"
 				if(result.bool==false){
 					trigger.untrigger();
