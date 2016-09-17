@@ -155,7 +155,7 @@ character.boss={
 					targets[1].$gain2(cards);
 					targets[0].damage(targets[1]);
 				}
-				if(!player.skills.contains('yinmo')){
+				if(!player.hasSkill('yinmo')){
 					event.finish();
 				}
 				"step 2"
@@ -208,7 +208,7 @@ character.boss={
 			usable:1,
 			filterCard:{color:'black'},
 			filterTarget:function(card,player,target){
-				return !target.skills.contains('mazui2');
+				return !target.hasSkill('mazui2');
 			},
 			check:function(card){
 				return 6-ai.get.value(card);
@@ -709,7 +709,7 @@ character.boss={
 				globalTo:function(from,to,distance){
 					if(to.isFriendOf(from)) return;
 					for(var i=0;i<game.players.length;i++){
-						if(game.players[i].skills.contains('boss_zhenwei')&&
+						if(game.players[i].hasSkill('boss_zhenwei')&&
 							game.players[i].isFriendOf(to)&&game.players[i]!=to){
 							return distance+1;
 						}
@@ -775,7 +775,7 @@ character.boss={
 				}
 				if(_status.mode=='jiange'){
 					for(var i=0;i<game.players.length;i++){
-						if(game.players[i].isFriendOf(player)&&game.players[i].skills.contains('huodi')){
+						if(game.players[i].isFriendOf(player)&&game.players[i].hasSkill('huodi')){
 							return num>0;
 						}
 					}
@@ -992,11 +992,11 @@ character.boss={
 			popup:false,
 			content:function(){
 				for(var i=0;i<game.players.length;i++){
-					if(game.players[i].skills.contains('boss_biantian3')){
+					if(game.players[i].hasSkill('boss_biantian3')){
 						game.players[i].removeSkill('boss_biantian3');
 						game.players[i].popup('boss_biantian3');
 					}
-					if(game.players[i].skills.contains('boss_biantian2')){
+					if(game.players[i].hasSkill('boss_biantian2')){
 						game.players[i].removeSkill('boss_biantian2');
 						game.players[i].popup('boss_biantian2');
 					}
@@ -1012,11 +1012,11 @@ character.boss={
             content:function(){
                 "step 0"
                 for(var i=0;i<game.players.length;i++){
-					if(game.players[i].skills.contains('boss_biantian3')){
+					if(game.players[i].hasSkill('boss_biantian3')){
 						game.players[i].removeSkill('boss_biantian3');
 						game.players[i].popup('boss_biantian3');
 					}
-					if(game.players[i].skills.contains('boss_biantian2')){
+					if(game.players[i].hasSkill('boss_biantian2')){
 						game.players[i].removeSkill('boss_biantian2');
 						game.players[i].popup('boss_biantian2');
 					}
@@ -1382,7 +1382,7 @@ character.boss={
 				globalFrom:function(from,to,distance){
 					if(to.isEnemyOf(from)) return;
 					for(var i=0;i<game.players.length;i++){
-						if(game.players[i].skills.contains('boss_jingfan')&&
+						if(game.players[i].hasSkill('boss_jingfan')&&
 							game.players[i].isFriendOf(from)&&game.players[i]!=from){
 							return distance-1;
 						}
@@ -1398,9 +1398,10 @@ character.boss={
 			trigger:{global:'dieAfter'},
 			forced:true,
 			priority:-10,
+			globalFixed:true,
 			filter:function(event){
 				if(lib.config.mode!='boss') return false;
-				return event.player==game.boss&&event.player.skills.contains('boss_bianshen2');
+				return event.player==game.boss&&event.player.hasSkill('boss_bianshen2');
 			},
 			content:function(){
 				'step 0'
@@ -1417,9 +1418,10 @@ character.boss={
 			trigger:{global:'dieAfter'},
 			forced:true,
 			priority:-10,
+			globalFixed:true,
 			filter:function(event){
 				if(lib.config.mode!='boss') return false;
-				return event.player==game.boss&&event.player.skills.contains('boss_bianshen3');
+				return event.player==game.boss&&event.player.hasSkill('boss_bianshen3');
 			},
 			content:function(){
 				'step 0'
@@ -1436,9 +1438,10 @@ character.boss={
 			trigger:{global:'dieAfter'},
 			forced:true,
 			priority:-10,
+			globalFixed:true,
 			filter:function(event){
 				if(lib.config.mode!='boss') return false;
-				return event.player==game.boss&&event.player.skills.contains('boss_bianshen4');
+				return event.player==game.boss&&event.player.hasSkill('boss_bianshen4');
 			},
 			content:function(){
 				'step 0'
@@ -1701,7 +1704,7 @@ character.boss={
 					target:function(card,player,target,current){
                         if(target.get('e','2')) return;
 						if(card.name=='sha'){
-							if(card.nature=='fire'||player.skills.contains('zhuque_skill')) return 2;
+							if(card.nature=='fire'||player.hasSkill('zhuque_skill')) return 2;
 						}
 						if(get.tag(card,'fireDamage')&&current<0) return 2;
 					}
@@ -1751,8 +1754,9 @@ character.boss={
 		boss_minbao2:{
 			trigger:{global:'dieAfter'},
 			forced:true,
+			globalFixed:true,
 			filter:function(event,player){
-				return event.player.skills.contains('boss_minbao')&&event.player.isDead();
+				return event.player.hasSkill('boss_minbao')&&event.player.isDead();
 			},
 			content:function(){
 				trigger.player.line(player,'fire');
@@ -1760,6 +1764,10 @@ character.boss={
 				player.$damage(trigger.player);
 				if(lib.config.animation&&!lib.config.low_performance){
 					player.$fire();
+				}
+				if(!event.parent.parent.boss_minbao_logv){
+					event.parent.parent.boss_minbao_logv=true;
+					game.logv(trigger.player,'boss_minbao',game.players.slice(0),event.parent.parent);
 				}
 			}
 		},
@@ -1814,20 +1822,25 @@ character.boss={
 			global:'boss_shanbeng2',
 			trigger:{player:'dieBegin'},
 			forced:true,
+			logv:false,
 			content:function(){
+				var targets=[];
 				for(var i=0;i<game.players.length;i++){
 					if(game.players[i].num('e')){
 						player.line(game.players[i],'green');
+						targets.push(game.players[i]);
 					}
 				}
 				game.delay();
+				game.logv(player,'boss_shanbeng',targets,null,true);
 			}
 		},
 		boss_shanbeng2:{
 			trigger:{global:'dieAfter'},
 			forced:true,
+			globalFixed:true,
 			filter:function(event,player){
-				return player.num('e')>0&&event.player.skills.contains('boss_shanbeng')&&event.player.isDead();
+				return player.num('e')>0&&event.player.hasSkill('boss_shanbeng')&&event.player.isDead();
 			},
 			content:function(){
 				player.discard(player.get('e'));
@@ -1970,11 +1983,11 @@ character.boss={
 							}
 							var be=target.num('e',{color:'black'});
 							if(target.num('h','shan')&&be){
-								if(!target.skills.contains('guidao')) return 0;
+								if(!target.hasSkill('guidao')) return 0;
 								return [0,hastarget?target.num('he')/2:0];
 							}
 							if(target.num('h','shan')&&target.num('h')>2){
-								if(!target.skills.contains('guidao')) return 0;
+								if(!target.hasSkill('guidao')) return 0;
 								return [0,hastarget?target.num('h')/4:0];
 							}
 							if(target.num('h')>3||(be&&target.num('h')>=2)){
@@ -1986,7 +1999,7 @@ character.boss={
 							if(target.num('h')==1&&!be){
 								return [1.2,0];
 							}
-							if(!target.skills.contains('guidao')) return [1,0.05];
+							if(!target.hasSkill('guidao')) return [1,0.05];
 							return [1,Math.min(0.5,(target.num('h')+be)/4)];
 						}
 					}
@@ -2293,7 +2306,7 @@ character.boss={
 						target.loseMaxHp();
 					}
 					else{
-						target.disabledSkills.boss_hujia=lib.character[target.name][3];
+						target.disableSkill('boss_hujia',lib.character[target.name][3]);
 					}
 					player.discard(result.cards);
 				}
@@ -2325,7 +2338,7 @@ character.boss={
 				player.draw(4);
 				"step 2"
 				for(var i=0;i<game.players.length;i++){
-					delete game.players[i].disabledSkills.boss_hujia;
+					game.players[i].enableSkill('boss_hujia');
 				}
 				if(game.bossinfo){
 					game.bossinfo.loopType=1;
@@ -2822,6 +2835,7 @@ character.boss={
 			unique:true,
 			mod:{
 				selectTarget:function(card,player,range){
+					if(range[1]==-1) return;
 					if(card.name=='sha'||card.name=='juedou') range[1]=3;
 				},
 			}
@@ -2846,8 +2860,7 @@ character.boss={
 				}
 				for(var i=0;i<game.players.length;i++){
 					for(var j in game.players[i].tempSkills){
-						game.players[i].skills.remove(j);
-						delete game.players[i].tempSkills[j];
+						game.players[i].removeSkill(j);
 					}
 				}
 				_status.paused=false;

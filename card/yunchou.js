@@ -17,17 +17,6 @@ card.yunchou={
 				},
 			},
 		},
-		huxinjing:{
-			fullskin:true,
-			type:"equip",
-			subtype:"equip2",
-			skills:['huxinjing'],
-			ai:{
-				basic:{
-					equipValue:6
-				},
-			},
-		},
 		chenhuodajie:{
 			fullskin:true,
 			type:'trick',
@@ -56,7 +45,6 @@ card.yunchou={
 			multitarget:true,
 			multiline:true,
 			filterTarget:function(card,player,target){
-				if(player==target) return true;
 				var num=target.num('h');
 				for(var i=0;i<game.players.length;i++){
 					if(game.players[i].num('h')<num) return false;
@@ -64,88 +52,26 @@ card.yunchou={
 				return true;
 			},
 			content:function(){
-				// target.draw();
-				game.asyncDraw(targets);
+				var num=[];
+				for(var i=0;i<targets.length;i++){
+					if(targets[i]==player){
+						num.push(2);
+					}
+					else{
+						num.push(1);
+					}
+				}
+				if(!targets.contains(player)){
+					targets.add(player);
+				}
+				game.asyncDraw(targets,num);
 			},
 			ai:{
 				order:1,
 				value:5,
 				result:{
-					target:1
-				}
-			}
-		},
-		huoshaolianying:{
-			fullskin:true,
-			type:'trick',
-			filterTarget:function(card,player,target){
-				if(player==target) return false;
-				var link=false;
-				for(var i=0;i<game.players.length;i++){
-					if(game.players[i].isLinked()&&game.players[i]!=player){
-						link=true;break;
-					}
-				}
-				if(link){
-					if(!target.isLinked()) return false;
-					var distance=get.distance(player,target,'absolute');
-					for(var i=0;i<game.players.length;i++){
-						if(target!=game.players[i]&&
-							game.players[i]!=player&&
-							game.players[i].isLinked()){
-							if(get.distance(player,game.players[i],'absolute')<distance){
-								return false;
-							}
-							if(get.distance(player,game.players[i],'absolute')==distance&&
-								parseInt(game.players[i].dataset.position)<parseInt(target.dataset.position)){
-								return false;
-							}
-						}
-					}
-					return true;
-				}
-				else{
-					var dist=get.distance(player,target);
-					for(var i=0;i<game.players.length;i++){
-						if(game.players[i]!=player&&get.distance(player,game.players[i])<dist) return false;
-					}
-					return true;
-				}
-			},
-			enable:true,
-			selectTarget:-1,
-			content:function(){
-				target.damage('fire');
-			},
-			ai:{
-				order:5,
-				value:6,
-				tag:{
-					damage:1,
-					natureDamage:1,
-					fireDamage:1,
-				},
-				result:{
-					target:function(player,target){
-						if(target.hasSkillTag('nofire')||target.hasSkillTag('nodamage')) return 0;
-						if(target.skills.contains('xuying')&&target.num('h')==0) return 0;
-						if(!target.isLinked()){
-							return ai.get.damageEffect(target,player,target,'fire');
-						}
-						var num=0;
-						for(var i=0;i<game.players.length;i++){
-							if(game.players[i].isLinked()){
-								var eff=ai.get.damageEffect(game.players[i],player,target,'fire');
-								if(eff>0){
-									num++;
-								}
-								else if(eff<0){
-									num--;
-								}
-							}
-						}
-						return num;
-					}
+					target:1,
+					player:0.1,
 				}
 			}
 		},
@@ -304,7 +230,7 @@ card.yunchou={
 							if(target==player&&target.num('h')<=1) return 0;
 							return 0.5;
 						}
-						if(target.skills.contains('toulianghuanzhu2')) return 0;
+						if(target.hasSkill('toulianghuanzhu2')) return 0;
 						return -0.5;
 					}
 				},
@@ -593,31 +519,29 @@ card.yunchou={
 			fullskin:true,
 			type:'trick',
 			enable:true,
-			filterTarget:function(card,player,target){
-				return target.num('he')>0;
-			},
+			filterTarget:true,
 			content:function(){
 				"step 0"
-				target.chooseToDiscard('he',[1,2]).ai=function(card){
-					if(target.hasSkillTag('nofire')) return 0;
-					if(ai.get.damageEffect(target,player,target,'fire')>=0&&
-						!target.hasSkillTag('maixie')) return 0;
-					if(player.get('s').contains('xinwuyan')) return 0;
-					if(target.get('s').contains('xinwuyan')) return 0;
-					if(target.hasSkillTag('maixie')&&target.hp>1&&ui.selected.cards.length){
-						return 0;
-					}
-					if(card.name=='tao') return 0;
-					if(target.hp==1&&card.name=='jiu') return 0;
-					if(get.type(card)!='basic'){
-						return 10-ai.get.value(card);
-					}
-					return 8-ai.get.value(card);
-				};
+				if(target.num('he')<2){
+					event.directfalse=true;
+				}
+				else{
+					target.chooseToDiscard('he',2).ai=function(card){
+						if(target.hasSkillTag('nofire')) return 0;
+						if(ai.get.damageEffect(target,player,target,'fire')>=0) return 0;
+						if(player.hasSkillTag('notricksource')) return 0;
+						if(target.hasSkillTag('notrick')) return 0;
+						if(card.name=='tao') return 0;
+						if(target.hp==1&&card.name=='jiu') return 0;
+						if(target.hp==1&&get.type(card)!='basic'){
+							return 10-ai.get.value(card);
+						}
+						return 8-ai.get.value(card);
+					};
+				}
 				"step 1"
-				if(!result.bool||result.cards.length<2){
-					if(result.bool) target.damage(2-result.cards.length,'fire');
-					else target.damage(2,'fire');
+				if(event.directfalse||!result.bool){
+					target.damage('fire');
 				}
 			},
 			ai:{
@@ -629,19 +553,25 @@ card.yunchou={
 				result:{
 					target:function(player,target){
 						if(target.hasSkillTag('nofire')) return 0;
+						if(ai.get.damageEffect(target,player,player)<0&&ai.get.attitude(player,target)>0){
+							return -2;
+						}
 						var nh=target.num('he');
 						if(target==player) nh--;
-						if(nh==2) return -5;
-						if(nh==1) return -6;
-						return -3;
+						switch(nh){
+							case 0:case 1:return -2;
+							case 2:return -1.5;
+							case 3:return -1;
+							default:return -0.7;
+						}
 					}
 				},
 				tag:{
-					damage:2,
-					fireDamage:2,
-					natureDamage:2,
-					discard:2,
-					loseCard:2,
+					damage:1,
+					fireDamage:1,
+					natureDamage:1,
+					discard:1,
+					loseCard:1,
 					position:'he',
 				}
 			}
@@ -718,7 +648,7 @@ card.yunchou={
 						return 0;
 					},
 					target:function(player,target){
-						if(target.skills.contains('dujian2')||target.num('h')==0) return 0;
+						if(target.hasSkill('dujian2')||target.num('h')==0) return 0;
 						if(player.num('h')<=1) return 0;
 						return -1.5;
 					}
@@ -748,31 +678,6 @@ card.yunchou={
 		},
 	},
 	skill:{
-		huxinjing:{
-			trigger:{player:'damageBegin'},
-			priority:10,
-			forced:true,
-			filter:function(event){
-				return event.num>0;
-			},
-			content:function(){
-				trigger.num--;
-				player.addSkill('huxinjing2');
-				// player.discard(player.get('e','2'));
-			}
-		},
-		huxinjing2:{
-			trigger:{player:'damageEnd'},
-			priority:10,
-			forced:true,
-			popup:false,
-			content:function(){
-				var cards=player.get('e','huxinjing');
-				if(cards.length){
-					player.discard(cards);
-				}
-			}
-		},
 		suolianjia:{
 			trigger:{player:'damageBefore'},
 			filter:function(event){
@@ -875,9 +780,6 @@ card.yunchou={
 		suolianjia:'锁链甲',
 		suolianjia_info:'锁定技，你防止即将受到的属性伤害，当装备时进入连环状态，当卸下时解除连环状态',
 		suolianjia_bg:'链',
-		huxinjing_bg:'镜',
-		huxinjing:'护心镜',
-		huxinjing_info:'抵消一点伤害',
 		geanguanhuo:'隔岸观火',
 		geanguanhuo_info:'指定任意两名角色进行拚点，拚点输的一方掉1点血；若点数一样则使用该锦囊的角色掉1点血。拚点的牌不用丢弃。',
 		toulianghuanzhu:'偷梁换柱',
@@ -887,13 +789,10 @@ card.yunchou={
 		yihuajiemu_info:'将一名角色的宝物牌转移至另一名角色',
 		fudichouxin:'釜底抽薪',
 		fudichouxin_info:'与一名角色进行拼点，若成功则获得双方拼点牌',
-		shuiyanqijun:'水淹七军',
+		shuiyanqijun:'水攻',
 		shuiyanqijun_info:'令所有有装备的角色各弃置一张装备牌',
 		shushangkaihua:'树上开花',
 		shushangkaihua_info:'使用者与手牌数最少的所有角色各摸一张牌',
-		huoshaolianying:'火烧连营',
-		huoshaolianying_bg:'烧',
-		huoshaolianying_info:'对离你最近的一名横置角色使用（若无横置角色则改为对距离你最近的所有角色使用），对目标造成一点火焰伤害',
 		chenhuodajie:'趁火打劫',
 		chenhuodajie_info:'任意一名其他角色受到伤害时对其使用，获得其一张牌',
 		huoshan:'火山',
@@ -901,7 +800,7 @@ card.yunchou={
 		hongshui:'洪水',
 		hongshui_info:'出牌阶段，对自己使用。若判定结果为梅花2~9，该角色随机弃置3张牌，距离该角色为X的角色随机弃置3-X张牌，若没有牌则失去一点体力，X至少为1',
 		liuxinghuoyu:'流星火羽',
-		liuxinghuoyu_info:'出牌阶段，对一名有手牌或装备牌的角色使用，令其弃置0~2张牌，并受到2-X点火焰伤害，X为弃置的卡牌数',
+		liuxinghuoyu_info:'出牌阶段，对一名角色使用，令目标弃置2张牌，或受到一点火焰伤害',
 		dujian:'毒箭',
 		dujian_info:'出牌阶段，对一名有手牌或装备牌的角色使用，令其展示一张手牌，若与你选择的手牌颜色相同，其流失一点体力',
 		qiankundai:'乾坤袋',
@@ -922,9 +821,9 @@ card.yunchou={
 		['diamond',3,'liuxinghuoyu','fire'],
 		['heart',6,'liuxinghuoyu','fire'],
 		['heart',9,'liuxinghuoyu','fire'],
-		['spade',3,'dujian'],
-		['club',11,'dujian'],
-		['club',12,'dujian'],
+		['spade',3,'dujian','poison'],
+		['club',11,'dujian','poison'],
+		['club',12,'dujian','poison'],
 		['heart',3,'yihuajiemu'],
 		["diamond",3,'guohe'],
 
@@ -941,8 +840,6 @@ card.yunchou={
 		['club',10,'toulianghuanzhu'],
 		['spade',11,'toulianghuanzhu'],
 		['spade',13,'guohe'],
-		['heart',7,'huoshaolianying','fire'],
-		['diamond',12,'huoshaolianying','fire'],
 		['heart',6,'shushangkaihua'],
 		['club',1,'shushangkaihua'],
 		['diamond',6,'chenhuodajie'],
@@ -950,6 +847,5 @@ card.yunchou={
 		['club',3,'chenhuodajie'],
 
 		['club',13,'suolianjia'],
-		['spade',9,'huxinjing'],
 	],
 }

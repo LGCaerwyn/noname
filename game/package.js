@@ -9,6 +9,7 @@ character.pack={
     diy:'DIY',
     yxs:'英雄杀',
     hearth:'炉石传说',
+    ow:'守望先锋',
     swd:'轩辕剑',
     gujian:'古剑奇谭',
     xianjian:'仙剑',
@@ -17,19 +18,16 @@ character.pack={
 };
 card.pack={
     standard:'标准',
-    ex:'EX',
     extra:'军争',
-    refresh:'界限突破',
+    sp:'SP',
     guozhan:'国战',
-    mingzhong:'忠胆英杰',
     zhenfa:'阵法',
     yunchou:'运筹帷幄',
     swd:'轩辕剑',
-    shenqi:'上古神器',
     hearth:'炉石传说',
-    compensate:'补充卡牌',
 };
 play.pack={
+    cardpile:'牌堆补充',
     character:'技能卡牌',
     soldier:'士兵模式',
     wuxing:'五行生克',
@@ -40,10 +38,12 @@ mode.pack={
     identity:'身份',
     guozhan:'国战',
     versus:'对决',
+    connect:'联机',
     boss:'挑战',
     chess:'战棋',
+    tafang:'塔防',
     stone:'炉石',
-    connect:'联机',
+    brawl:'乱斗',
 };
 background.pack={
     zhulian_bg:'璧合',
@@ -62,6 +62,7 @@ font.pack={
     xiaozhuan:'小篆',
     xinwei:'新魏',
     huangcao:'黄草',
+    lishu:'隶书',
 };
 theme.pack={
     woodden:'木纹',

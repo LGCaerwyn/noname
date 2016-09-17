@@ -4,7 +4,7 @@ html{
 	background: url('grid.png'),linear-gradient(#6c7989, #434b55) fixed;
 }
 #system>div>div,#mebg,.control,.player,.card,.avatar,.avatar2,.button,.dialog>.bar,.menu,#splash>div,
-#arena.mobile:not(.chess) .player[data-position='0'] .equips,.playerbg{
+#arena.mobile:not(.chess) .player[data-position='0'] .equips,.playerbg,.menubg,.mebg{
 	box-shadow: rgba(0, 0, 0, 0.2) 0 0 0 1px, rgba(0, 0, 0, 0.45) 0 3px 10px;
 	border-radius: 8px;
 }
@@ -24,24 +24,35 @@ html{
 	border-radius: 4px;
 }
 
+.button-downloading>.button-progress{
+	background: rgba(77,224,100,0.45);
+}
 
 .menu.main>.menu-tab>div:not(.active):not(*:hover),
 .menu.main>.menu-tab>.disabled{
 	color: rgba(77, 60, 51,0.5);
 }
-#window>.dialog.popped,.menu{
+#window>.dialog.popped,.menu,.menubg{
 	background:url('wood2.png');
 	color:rgba(77, 60, 51,0.8);
 	text-shadow:none;
+}
+.cardbg{
+	background-size: initial !important;
 }
 #splash>div{
 	background:url('wood2.png');
 }
 
-.player.unseen .equips:not(*:empty){
+#arena.mobile:not(.oldlayout) .player.unseen:not([data-position="0"]) .equips:not(*:empty),
+#arena:not(.mobile):not(.oldlayout) .player.unseen .equips:not(*:empty){
 	background: url('wood.png');
 	border-radius:4px;
 	box-shadow: rgba(0, 0, 0, 0.2) 0 0 0 1px, rgba(0, 0, 0, 0.2) 0 2px 10px;
+}
+#arena.mobile:not(.oldlayout) .player.unseen:not([data-position="0"]) .equips:not(*:empty)>.card,
+#arena:not(.mobile):not(.oldlayout) .player.unseen .equips:not(*:empty)>.card{
+	background: none !important;
 }
 
 .coin_menu .content>.caption>.coin_buy>.menubutton{
@@ -54,23 +65,57 @@ html{
 .popup.thunder{
 	color: rgb(117,186,255);
 }
-.control .thundertext{
+.control .thundertext,.thundertext.thunderauto,
+.dialog.popped .bluetext{
 	color: rgba(29, 63, 137, 1);
 }
 .control .controlthundertext{
 	color: rgb(62, 41, 30);
 }
-.player,.card,.dialog>.bar,
+.dialog.popped .yellowtext{
+	color:#631515;
+}
+.dialog.popped .greentext{
+	color:#00312d;
+}
+.legendtext.legendauto{
+	color: rgba(106, 27, 154, 1);
+}
+.player,.card,.dialog>.bar,.cardbg,
 #arena.mobile:not(.chess) .player[data-position='0'] .equips,.playerbg{
 	background: url('wood.jpg');
 }
+#arena.observe .handcards>.card{
+	background: url('wood.jpg') !important;
+}
+#arena:not(.chess).textequip .player[data-position='0'] .equips>.card{
+	background: url('wood.jpg') !important;
+	color:rgb(77, 60, 51) !important;
+	text-shadow: none;
+	box-shadow: rgba(0,0,0,0.4) 1px 0 0 1px;
+}
+#arena:not(.chess).textequip .player[data-position='0'] .equips>.card:first-child{
+	box-shadow: rgba(0,0,0,0.4) 0 1px 0 0;
+}
+#arena:not(.chess).textequip .player[data-position='0'] .equips>.card.selected{
+	background-image: linear-gradient(rgba(47,101,150,1), rgba(43, 90, 132,1)) !important;
+	color: white !important;
+	box-shadow: rgba(0,0,0,0.4) 1px 0 0 1px !important;
+}
+#arena:not(.chess).textequip .player[data-position='0'] .equips>.card.selected:first-child{
+	box-shadow: rgba(0,0,0,0.4) 0 1px 0 0 !important;
+}
+#arena:not(.chess).textequip .player[data-position='0'] .equips>.card>.name2{
+	transition: opacity 0.5s, color 0s;
+}
+
 .control,#system>div>div,.menubutton,#system>div>.pressdown2{
 	background: url('wood2.jpg');
 	color:rgba(77, 60, 51,0.8);
 	text-shadow:none;
 	border-radius:4px;
 }
-#roundmenu>div{
+#roundmenu>div:not(.clock){
 	background:rgba(77, 60, 51,0.8);
 	box-shadow:none;
 }
@@ -80,7 +125,7 @@ html{
 .judges>div,.marks>div{
 	border-radius:4px;
 }
-#mebg,.menubutton,.menubutton.highlight,.menubutton.active{
+#mebg,.menubutton,.menubutton.highlight,.menubutton.active,.mebg{
 	background: url('wood.png');
 }
 .menubutton.large{
@@ -121,9 +166,16 @@ html{
 .card.equip4>.range{
 	text-shadow: white 0 0 2px;
 }
-.card{
+.card,.menubg,.cardbg,.button.character.cardbg{
 	color:rgb(77, 60, 51);
 	text-shadow:none;
+}
+#arena.mobile:not(.chess) .player[data-position='0'] .card.fullskin.epic>.name2{
+	color: rgba(0, 66, 165, 1);
+}
+#arena.mobile:not(.chess) .player[data-position='0'] .card.fullskin.legend>.name2{
+	color: rgba(106, 27, 154, 1);
+	/*color: rgb(117,186,0);*/
 }
 .bordered{
 	border:1px solid rgba(255, 255, 255,0.5);
@@ -137,4 +189,8 @@ html{
 	background:rgba(77, 60, 51,0.8);
 	border:1px solid rgba(77, 60, 51,0);
 	box-shadow:none;
+}
+
+.player .marks>div:first-child>div{
+	-webkit-filter: invert(0.8) sepia(1);
 }

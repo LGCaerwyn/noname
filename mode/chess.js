@@ -5,6 +5,9 @@ mode.chess={
 	start:function(){
 		"step 0"
 		_status.mode=get.config('chess_mode');
+		if(lib.storage.test){
+			_status.mode='combat';
+		}
 		if(_status.mode=='combat'){
 			_status.first_less=true;
 		}
@@ -22,14 +25,10 @@ mode.chess={
 		document.head.appendChild(ui.chesssheet);
 		var playback=localStorage.getItem(lib.configprefix+'playback');
 		lib.treasurelist=[];
-		lib.mechlist=[];
 		if(get.config('chess_character')||playback||_status.mode=='leader'){
 			for(var i in lib.characterPack.mode_chess){
 				if(i.indexOf('treasure_')==0){
 					lib.treasurelist.push(i);
-				}
-				else if(i.indexOf('chess_mech_')==0){
-					lib.mechlist.push(i);
 				}
 				if(!playback&&i.indexOf('leader_')==0&&_status.mode!='leader') continue;
 				lib.character[i]=lib.characterPack.mode_chess[i];
@@ -38,18 +37,17 @@ mode.chess={
 				}
 			}
 		}
-		if(get.config('chess_card')){
-			lib.card.list=lib.card.list.concat(lib.chess_cardlist);
-		}
-		if(parseFloat(get.config('chess_obstacle'))>0&&_status.mode!='tafang'){
-			lib.card.list=lib.card.list.concat(lib.chess_obstaclelist);
-			delete lib.chess_obstaclelist
-		}
+		// if(get.config('chess_card')){
+		// 	lib.card.list=lib.card.list.concat(lib.chess_cardlist);
+		// 	if(parseFloat(get.config('chess_obstacle'))>0){
+		// 		lib.card.list=lib.card.list.concat(lib.chess_obstaclelist);
+		// 		delete lib.chess_obstaclelist
+		// 	}
+		// }
 		ui.create.cards();
 		game.finishCards();
 		ui.chessContainer=ui.create.div('#chess-container',ui.arena);
 		lib.setScroll(ui.chessContainer);
-		ui.chessContainer.style.WebkitOverflowScrolling='touch';
 		ui.chess=ui.create.div('#chess',ui.chessContainer);
 		ui.canvas2=document.createElement('canvas');
 		ui.canvas2.id='canvas2';
@@ -89,17 +87,11 @@ mode.chess={
 						lib.config.game_speed='vfast';
 						_status.auto=true;
 						setTimeout(function(){
-							console.log(get.translation(game.players));
 							ui.updatehl();
 						},500);
 						ui.auto.classList.add('glow');
 					}
 					game.chooseCharacter();
-					break;
-				}
-				case 'tafang':{
-					_status.mylist=[];
-					_status.enemylist=[];
 					break;
 				}
 				default:{
@@ -147,24 +139,19 @@ mode.chess={
 			side=Math.random()<0.5;
 		}
 
-		if(_status.mode=='tafang'){
-			ui.chesswidth=parseInt(get.config('tafang_size'));
-			ui.chessheight=11;
+		switch(num){
+			case 1:ui.chessheight=4;break;
+			case 2:ui.chessheight=5;break;
+			case 3:ui.chessheight=5;break;
+			case 4:ui.chessheight=6;break;
+			case 5:ui.chessheight=6;break;
+			case 6:ui.chessheight=7;break;
+			case 7:ui.chessheight=7;break;
+			case 8:ui.chessheight=8;break;
+			default:ui.chessheight=8;
 		}
-		else{
-			switch(num){
-				case 1:ui.chessheight=4;break;
-				case 2:ui.chessheight=5;break;
-				case 3:ui.chessheight=5;break;
-				case 4:ui.chessheight=6;break;
-				case 5:ui.chessheight=6;break;
-				case 6:ui.chessheight=7;break;
-				case 7:ui.chessheight=7;break;
-				case 8:ui.chessheight=8;break;
-				default:ui.chessheight=8;
-			}
-			ui.chesswidth=Math.round(ui.chessheight*1.5);
-		}
+		ui.chesswidth=Math.round(ui.chessheight*1.5);
+
 		if(num==1) ui.chesswidth++;
 		ui.chess.style.height=148*ui.chessheight+'px';
 		ui.chess.style.width=148*ui.chesswidth+'px';
@@ -249,40 +236,13 @@ mode.chess={
 		}
 		event.obs=[];
 		if(!event.video){
-			var tafanglist=[0,2,3,5,6,8,9,11,12];
-			if(_status.mode=='tafang'){
-				for(var i=0;i<ui.chessheight-1;i++){
-					for(var j=0;j<ui.chesswidth;j++){
-						if(i>=8&&j!=0&&j!=ui.chesswidth-1) continue;
-						if(tafanglist.contains(j)){
-							var cg=i*ui.chesswidth+j;
-							grids.remove(cg);
-							game.addObstacle(cg.toString(),false);
-							event.obs.push(cg.toString());
-						}
-					}
-				}
-				for(var i=0;i<ui.chesswidth;i++){
-					switch(ui.chesswidth){
-						case 6:if(i==2||i==3) continue;break;
-						case 9:if(i==3||i==4||i==5) continue;break;
-						case 12:if(i==4||i==5||i==6||i==7) continue;break;
-					}
-					var cg=(ui.chessheight-1)*ui.chesswidth+i;
-					grids.remove(cg);
+			var nco=parseFloat(get.config('chess_obstacle'));
+			if(nco>0){
+				var ng=Math.floor(gridnum*nco);
+				for(var i=0;i<ng;i++){
+					var cg=grids.randomRemove();
 					game.addObstacle(cg.toString(),false);
 					event.obs.push(cg.toString());
-				}
-			}
-			else{
-				var nco=parseFloat(get.config('chess_obstacle'));
-				if(nco>0){
-					var ng=Math.floor(gridnum*nco);
-					for(var i=0;i<ng;i++){
-						var cg=grids.randomRemove();
-						game.addObstacle(cg.toString(),false);
-						event.obs.push(cg.toString());
-					}
 				}
 			}
 		}
@@ -290,6 +250,7 @@ mode.chess={
 		_status.friendCount=_status.mylist.length;
 		while(_status.mylist.length){
 			friend=ui.create.player().animate('start');
+			friend.getId();
 			if(!event.friendZhu){
 				event.friendZhu=friend;
 			}
@@ -320,6 +281,7 @@ mode.chess={
 		}
 		while(_status.enemylist.length){
 			enemy=ui.create.player().animate('start');
+			enemy.getId();
 			enemy.init(_status.enemylist.shift());
 			enemy.side=!side;
 			enemy.setIdentity('enemy');
@@ -336,28 +298,31 @@ mode.chess={
 			lib.posmap[enemy.dataset.position]=enemy;
 		}
 
-		lib.setPopped(ui.create.system('手牌',null,true),function(){
-			var uiintro=ui.create.dialog('hidden');
-			var added=false;
-			for(var i=0;i<game.players.length;i++){
-				if(game.players[i].side==game.me.side&&game.players[i]!=game.me){
-					added=true;
-					uiintro.add(get.translation(game.players[i]));
-					var cards=game.players[i].get('h');
-					if(cards.length){
-						uiintro.addSmall(cards,true);
-					}
-					else{
-						uiintro.add('（无）');
+		if(lib.config.show_handcardbutton){
+			lib.setPopped(ui.create.system('手牌',null,true),function(){
+				var uiintro=ui.create.dialog('hidden');
+				var added=false;
+				for(var i=0;i<game.players.length;i++){
+					if(game.players[i].side==game.me.side&&game.players[i]!=game.me){
+						added=true;
+						uiintro.add(get.translation(game.players[i]));
+						var cards=game.players[i].get('h');
+						if(cards.length){
+							uiintro.addSmall(cards,true);
+						}
+						else{
+							uiintro.add('（无）');
+						}
 					}
 				}
-			}
-			if(!added){
-				uiintro.add('无队友');
-			}
+				if(!added){
+					uiintro.add('无队友');
+				}
 
-			return uiintro;
-		},220);
+				return uiintro;
+			},220);
+		}
+
 		if(!event.video&&_status.mode=='combat'&&!_status.vsboss&&(_status.replacelist.length||get.config('additional_player'))){
 			_status.enemyDied=0;
 			_status.friendDied=0;
@@ -515,55 +480,19 @@ mode.chess={
 			game.addVideo('initobs',null,event.obs);
 		}
 
-		if(_status.mode=='tafang'){
-			ui.me.querySelector('.fakeme.player').hide();
-			ui.me.querySelector('.fakeme.avatar').hide();
-
-			var list=[];
-			for(i in lib.character){
-				if(i.indexOf('treasure_')==0) continue;
-				if(i.indexOf('chess_mech_')==0) continue;
-				if(lib.character[i][4].contains('minskin')) continue;
-				if(lib.config.forbidchess.contains(i)) continue;
-				if(lib.character[i][4].contains('boss')) continue;
-				if(lib.filter.characterDisabled(i)) continue;
-				list.push(i);
-			}
-			list.randomSort();
-			_status.characterList=list;
-			_status.friends=[];
-			_status.enemies=[];
-			_status.turnCount=0;
-			_status.turnTotal=parseInt(get.config('tafang_turn'));
-			ui.turnCount=ui.create.system('',null,true);
-			_status.remainingCount=0;
-			game.me.side=true;
-
-			_status.tafangend=[];
-			for(var i=0;i<ui.chesswidth;i++){
-				var tafangdes=ui.chesswidth*(ui.chessheight-1)+i;
-				if(!lib.posmap[tafangdes]){
-					_status.tafangend.push(tafangdes.toString());
-				}
-			}
-
-			game.phaseLoopTafang();
+		event.trigger('gameStart');
+		game.gameDraw(p);
+		game.me.classList.add('current_action');
+		if(_status.mode=='leader'){
+			game.phaseLoopOrdered(p);
+		}
+		else if(get.config('seat_order')=='指定'){
+			game.phaseLoopOrdered(p);
 		}
 		else{
-			event.trigger('gameStart');
-			game.gameDraw(p);
-			game.me.classList.add('current_action');
-			if(_status.mode=='leader'){
-				game.phaseLoopOrdered(p);
-			}
-			else if(get.config('seat_order')=='交替'){
-				game.phaseLoopOrdered(p);
-			}
-			else{
-				game.phaseLoop(p);
-			}
-			game.setChessInfo(p);
+			game.phaseLoop(p);
 		}
+		game.setChessInfo(p);
 	},
 	element:{
 		card:{
@@ -628,7 +557,7 @@ mode.chess={
 				var next=game.createEvent('chooseToMove');
 				next.num=num||1;
 				next.player=this;
-				next.content=lib.element.playerproto.chooseToMove;
+				next.setContent('chooseToMove');
 				next.prompt=prompt;
 				return next;
 			},
@@ -653,7 +582,7 @@ mode.chess={
 					this.chessFocus();
 				}
 
-				if(_status.mode=='tafang'&&!_status.video){
+				if(get.mode()=='tafang'&&!_status.video){
 					if(_status.tafangend.contains(this.dataset.position)){
 						if(_status.enemies.contains(this)){
 							game.over(false);
@@ -665,12 +594,16 @@ mode.chess={
 							_status.friends.remove(this);
 							this.classList.add('dead');
 							if(this==game.me){
+								if(ui.confirm){
+									ui.confirm.close();
+								}
 								if(_status.friends.length==0){
 									ui.fakeme.hide();
 									this.node.handcards1.delete();
 									this.node.handcards2.delete();
 									game.me=ui.create.player();
-									game.me.side=true;
+									game.me.side=false;
+									game.addVideo('removeTafangPlayer');
 								}
 								else{
 									game.modeSwapPlayer(_status.friends[0]);
@@ -1004,19 +937,9 @@ mode.chess={
 						}
 					}
 				}
-				if(_status.mode=='tafang'){
-					if(_status.friends.length==0&&ui.fakeme){
-						ui.fakeme.hide();
-						this.node.handcards1.delete();
-						this.node.handcards2.delete();
-						game.me=ui.create.player();
-						game.me.side=true;
-					}
-					return;
-				}
 				game.over(game.me.side==game.players[0].side);
 			},
-			$draw:function(num){
+			$draw_old:function(num){
 				var cards;
 				if(get.itemtype(num)=='cards'){
 					cards=num;
@@ -1032,42 +955,6 @@ mode.chess={
 				}
 
 				return this.$gainmod(num);
-			},
-			$drawx:function(num){
-				var cards,node;
-				if(get.itemtype(num)=='cards'){
-					cards=num;
-					num=cards.length;
-				}
-				else if(get.itemtype(num)=='card'){
-					cards=[num];
-					num=1;
-				}
-				if(cards){
-					cards=cards.slice(0);
-					node=cards.shift().copy('drawing','thrown');
-				}
-				else{
-					node=ui.create.div('.card.drawing.thrown');
-				}
-				node.fixed=true;
-				game.$randomMove(this,node,100,30);
-				node.dataset.position=this.dataset.position;
-				this.parentNode.appendChild(node);
-				ui.refresh(node);
-				node.style.transform='';
-				setTimeout(function(){
-					node.remove();
-				},1000);
-				var that=this;
-				if(num&&num>1){
-					if(cards){
-						that.$draw(cards)
-					}
-					else{
-						that.$draw(num-1)
-					}
-				}
 			},
 			$gainmod:function(num){
 				var cards,node;
@@ -1087,7 +974,7 @@ mode.chess={
 					node=ui.create.div('.card.thrown.hidden');
 				}
 				node.fixed=true;
-				game.$randomMove(this,node,100,30);
+				this.$randomMove(node,130,0);
 				var ot=node.style.transform;
 				if(node.style.transform&&node.style.transform!='none'){
 					node.style.transform+=' scale(0.6)';
@@ -1139,7 +1026,7 @@ mode.chess={
 					this.parentNode.appendChild(node);
 					ui.refresh(node);
 					node.show();
-					game.$randomMove(this,node,100,30);
+					this.$randomMove(node,130,0);
 					if(time!=undefined){
 						node.fixed=true;
 						setTimeout(function(){node.delete()},time);
@@ -1176,7 +1063,7 @@ mode.chess={
 					ui.refresh(node);
 					node.show();
 
-					game.$randomMove(this,node,100,30);
+					this.$randomMove(node,130,0);
 
 					setTimeout(function(){
 						node.removeAttribute('style');
@@ -1216,9 +1103,98 @@ mode.chess={
 					player.offsetLeft+player.offsetWidth/2,
 					player.offsetTop+player.offsetHeight/2
 				],{opacity:0.5,dashed:true},true);
-			}
+			},
+			$randomMove:function(node,length,rand){
+				if(!this.node.chessthrown){
+					this.node.chessthrown=[];
+				}
+				var thrown=this.node.chessthrown;
+				for(var i=0;i<thrown.length;i++){
+					if(thrown[i].parentNode!=this.parentNode||
+						thrown[i].classList.contains('removing')){
+						thrown.splice(i--,1);
+					}
+				}
+				thrown.push(node);
+
+				var rect=this.getBoundingClientRect();
+				var amax,amin;
+				if(rect.left<=80){
+					if(rect.top<=80){
+						amin=-90;
+						amax=0;
+					}
+					else if(rect.top+rect.height+80>=ui.chessContainer.offsetHeight){
+						amin=0;
+						amax=90;
+					}
+					else{
+						amin=-90;
+						amax=90;
+					}
+				}
+				else if(rect.left+rect.width+80>=ui.chessContainer.offsetWidth){
+					if(rect.top<=80){
+						amin=180;
+						amax=270;
+					}
+					else if(rect.top+rect.height+80>=ui.chessContainer.offsetHeight){
+						amin=90;
+						amax=180;
+					}
+					else{
+						amin=90;
+						amax=270;
+					}
+				}
+				else if(rect.top<=80){
+					amin=180;
+					amax=360;
+				}
+				else if(rect.top+rect.height+80>=ui.chessContainer.offsetHeight){
+					amin=0;
+					amax=180;
+				}
+				else{
+					var dx=ui.chessContainer.offsetWidth/2-(rect.left+rect.width/2);
+					var dy=-ui.chessContainer.offsetHeight/2+(rect.top+rect.height/2);
+					var ang=Math.abs(Math.atan(dy/dx))*180/Math.PI;
+					if(dx<0){
+						if(dy>0){
+							ang=180-ang;
+						}
+						else{
+							ang+=180;
+						}
+					}
+					else if(dy<0){
+						ang=360-ang;
+					}
+					amin=ang-180;
+					amax=ang+180;
+				}
+				var da=(amax-amin)/(thrown.length*2);
+				if(da>30&&thrown.length>1){
+					amin+=(da-30)*thrown.length;
+					da=30;
+				}
+				for(var i=0;i<thrown.length;i++){
+					var lengthi=length+Math.random()*rand;
+					var ang=amin+da*(2*i+1);
+					ang*=Math.PI/180;
+					var tx=lengthi*Math.cos(ang);
+					var ty=-lengthi*Math.sin(ang);
+					if(Math.abs(tx)<0.1){
+						tx=0;
+					}
+					if(Math.abs(ty)<0.1){
+						ty=0;
+					}
+					thrown[i].style.transform='translate('+tx+'px,'+ty+'px)';
+				}
+			},
 		},
-		playerproto:{
+		content:{
 			replaceChessPlayer:function(){
 				'step 0'
 				if(get.config('additional_player')){
@@ -1242,7 +1218,7 @@ mode.chess={
 						event.playername=_status.additionallist.randomRemove();
 					}
 				}
-				else if(!event.enemy&&get.config('seat_order')=='交替'&&!_status.auto&&_status.replacelist.length){
+				else if(!event.enemy&&get.config('seat_order')=='指定'&&!_status.auto&&_status.replacelist.length){
 					_status.replacelist.add(event.playername);
 					event.dialog=ui.create.dialog('选择替补角色',[_status.replacelist,'character']);
 					event.filterButton=function(){return true;};
@@ -1266,6 +1242,7 @@ mode.chess={
 					event.swapNow=true;
 				}
 				'step 1'
+				game.uncheck();
 				var player=game.addChessPlayer(event.playername,event.enemy);
 				game.log(player,'加入游戏');
 				player.chessFocus();
@@ -1291,7 +1268,7 @@ mode.chess={
 					var randomMove=['moveUp','moveDown','moveLeft','moveRight'];
 					for(var iwhile=0;iwhile<num;iwhile++){
 						var targets=[];
-						if(_status.mode=='tafang'&&_status.enemies.contains(player)){
+						if(get.mode()=='tafang'&&_status.enemies.contains(player)){
 							var targets2=[];
 							for(var i=0;i<ui.chesswidth;i++){
 								var tafangdes=ui.chesswidth*(ui.chessheight-1)+i;
@@ -1414,13 +1391,11 @@ mode.chess={
 	game:{
 		minskin:true,
 		singleHandcard:true,
+		chess:true,
 		treasures:[],
 		obstacles:[],
 		getVideoName:function(){
 			var str='战棋'+get.translation(_status.mode)+' - '+_status.friendCount+'v'+_status.enemyCount;
-			if(_status.mode=='tafang'){
-				str='战棋 - 塔防';
-			}
 			var name=[get.translation(game.me.name),str];
 			return name;
 		},
@@ -1429,6 +1404,7 @@ mode.chess={
 				num=4;
 			}
 			var player=ui.create.player();
+			player.getId();
 			if(enemy=='treasure'){
 				player.animate('judgestart');
 				player.side=null;
@@ -1442,12 +1418,22 @@ mode.chess={
 			else{
 				player.animate('start');
 				if(enemy){
-					player.side=!game.me.side;
+					if(get.mode()=='tafang'){
+						player.side=true;
+					}
+					else{
+						player.side=!game.me.side;
+					}
 					player.setIdentity('enemy');
 					player.identity='enemy';
 				}
 				else{
-					player.side=game.me.side;
+					if(get.mode()=='tafang'){
+						player.side=false;
+					}
+					else{
+						player.side=game.me.side;
+					}
 					player.setIdentity('friend');
 					player.identity='friend';
 				}
@@ -1501,7 +1487,7 @@ mode.chess={
 			var next=game.createEvent('replaceChessPlayer');
 			next.playername=name;
 			next.enemy=enemy;
-			next.content=lib.element.playerproto.replaceChessPlayer;
+			next.setContent('replaceChessPlayer');
 		},
 		removeTreasure:function(player){
 			game.addVideo('removeTreasure',null,player.dataset.position);
@@ -1609,460 +1595,10 @@ mode.chess={
 				}
 			}
 		},
-		phaseLoopTafang:function(){
-			var next=game.createEvent('phaseLoop');
-			next.content=function(){
-				'step 0'
-				_status.turnCount++;
-				ui.turnCount.innerHTML='回合'+get.cnNumber(_status.turnCount,true);
-				var dialog=ui.create.dialog('剩余行动点：'+(10+_status.remainingCount),'hidden');
-				dialog.style.height='260px';
-				dialog.style.top='calc(50% - 140px)';
-				dialog.classList.add('center');
-				dialog.classList.add('noupdate');
-				event.dialog=dialog;
-				var list=_status.characterList.splice(0,6);
-				var map={};
-				map.bufang=ui.create.buttons(lib.mechlist,'character',dialog.content);
-				var difficulty=parseInt(get.config('tafang_difficulty'));
-				for(var i=0;i<map.bufang.length;i++){
-					var button=map.bufang[i];
-					button.node.name.style.top='8px';
-					button.node.intro.classList.add('showintro');
-					button.node.intro.classList.add('tafang');
-					if(button.link=='chess_mech_nengliangqiu'||
-						button.link=='chess_mech_guangmingquan'||
-						button.link=='chess_mech_jiguanren'){
-						button.count=difficulty+1;
-						button.node.intro.innerHTML=get.cnNumber(button.count,true);
-					}
-					else{
-						button.count=difficulty+2;
-						button.node.intro.innerHTML=get.cnNumber(button.count,true);
-					}
-					button._link='布防';
-				}
-				map.zhaomu=ui.create.buttons(list,'character',dialog.content);
-				for(var i=0;i<map.zhaomu.length;i++){
-					var button=map.zhaomu[i];
-					button.node.intro.classList.add('showintro');
-					button.node.intro.classList.add('tafang');
-					button.count=difficulty+4;
-					button.node.intro.innerHTML=get.cnNumber(button.count,true);
-					button._link='招募';
-				}
-				if(_status.friends.length){
-					map.xingdong=ui.create.buttons(_status.friends,'player',dialog.content);
-					for(var i=0;i<map.xingdong.length;i++){
-						var button=map.xingdong[i];
-						button.node.intro.classList.add('showintro');
-						button.node.intro.classList.add('tafang');
-						if(difficulty<2){
-							button.count=1;
-						}
-						else{
-							button.count=2;
-						}
-						button.node.intro.innerHTML=get.cnNumber(button.count,true);
-						button._link='行动';
-					}
-				}
-				else{
-					map.xingdong=[];
-				}
-				var updateSelected=function(){
-					var count=10+_status.remainingCount;
-					var selected=dialog.querySelectorAll('.button.selected');
-					var selectedZhaomu=0;
-					for(var i=0;i<selected.length;i++){
-						count-=selected[i].count;
-						if(selected[i]._link=='招募'){
-							selectedZhaomu++;
-						}
-					}
-					for(var i in map){
-						for(var j=0;j<map[i].length;j++){
-							map[i][j].classList.remove('unselectable');
-							if(map[i][j].count>count){
-								map[i][j].classList.add('unselectable');
-							}
-							else if(i=='zhaomu'&&_status.friends.length+selectedZhaomu>=ui.chesswidth){
-								map[i][j].classList.add('unselectable');
-							}
-							else if(i=='bufang'){
-								var numbufang=0;
-								for(var k=0;k<game.treasures.length;k++){
-									if(game.treasures[k].name==map[i][j].link){
-										numbufang++;
-									}
-									if(numbufang>=3){
-										map[i][j].classList.add('unselectable');
-										break;
-									}
-								}
-							}
-						}
-					}
-					ui.dialog.content.firstChild.innerHTML='剩余行动点：'+count;
-				}
-				var clickOrder=0;
-				event.custom.replace.button=function(button){
-					if(!button.classList.contains('unselectable')||
-						button.classList.contains('selected')){
-						button.classList.toggle('selected');
-						button._clickOrder=clickOrder++;
-					}
-					updateSelected();
-				}
-				event.custom.add.window=function(clicked){
-					if(clicked) return;
-					if(event.step>1) return;
-					for(var i in map){
-						for(var j=0;j<map[i].length;j++){
-							map[i][j].classList.remove('selected');
-							map[i][j].classList.remove('unselectable');
-						}
-					}
-					updateSelected();
-				}
-				var update=function(link){
-					for(var i in map){
-						for(var j=0;j<map[i].length;j++){
-							if(map[i][j]._link!=link){
-								map[i][j].style.display='none';
-							}
-							else{
-								map[i][j].style.display='';
-							}
-						}
-					}
-					for(var i=0;i<event.control.childNodes.length;i++){
-						if(event.control.childNodes[i].innerHTML==link){
-							event.control.childNodes[i].classList.add('thundertext');
-						}
-					}
-					_status.lastTafangCommand=link;
-				}
-				event.control=ui.create.control('布防','招募','行动',function(link,node){
-					if(link=='行动'&&_status.friends.length==0) return;
-					if(link=='招募'&&_status.friends.length>=ui.chesswidth) return;
-					var current=node.parentNode.querySelector('.thundertext');
-					if(current==node) return;
-					if(current){
-						current.classList.remove('thundertext');
-					}
-					update(link);
-				});
-				if(!_status.friends.length){
-					event.control.lastChild.style.opacity=0.5;
-					if(_status.lastTafangCommand=='行动'){
-						_status.lastTafangCommand='招募';
-					}
-				}
-				if(_status.friends.length>=ui.chesswidth){
-					event.control.childNodes[1].style.opacity=0.5;
-					if(_status.lastTafangCommand=='招募'){
-						_status.lastTafangCommand='行动';
-					}
-				}
-				_status.imchoosing=true;
-				ui.auto.hide();
-				var eventdong=function(){
-					var selected=dialog.querySelectorAll('.button.selected');
-					event.bufang=[];
-					event.zhaomu=[];
-					event.xingdong=[];
-					var xingdongs=[];
-					_status.remainingCount+=10;
-					for(var i=0;i<selected.length;i++){
-						switch(selected[i]._link){
-							case '布防':event.bufang.push(selected[i].link);break;
-							case '招募':event.zhaomu.push(selected[i].link);break;
-							case '行动':xingdongs.push(selected[i]);break;
-						}
-						_status.remainingCount-=selected[i].count;
-					}
-					_status.remainingCount=Math.ceil(_status.remainingCount/2);
-					xingdongs.sort(function(a,b){
-						return a._clickOrder-b._clickOrder;
-					});
-					for(var i=0;i<xingdongs.length;i++){
-						event.xingdong.push(xingdongs[i].link);
-					}
-					game.resume();
-				};
-				event.done=ui.create.control('完成',eventdong);
-				if(_status.lastTafangCommand){
-					update(_status.lastTafangCommand);
-				}
-				else{
-					update('招募');
-				}
-				if(_status.characterList.length<6){
-					game.over(true);
-					event.done.close();
-					event.control.close();
-					return;
-				}
-				setTimeout(function(){
-					dialog.open();
-					updateSelected();
-				},50);
-				event.switchToAuto=eventdong;
-				if(!_status.auto){
-					game.pause();
-				}
-				else{
-					eventdong();
-				}
-				'step 1'
-				event.dialog.close();
-				event.control.close();
-				event.done.close();
-				delete event.dialog;
-				delete event.control;
-				delete event.done;
-				'step 2'
-				event.chooseObstacle=false;
-				if(event.bufang.length){
-					event.obstacles=game.obstacles.slice(0);
-					for(var i=0;i<event.obstacles.length;i++){
-						event.obstacles[i].classList.add('glow');
-					}
-					event.chooseObstacle=true;
-					event.currentBufang=event.bufang.shift();
-					event.dialog=ui.create.dialog('选择一个位置放置【'+get.translation(event.currentBufang)+'】');
-					if(!_status.auto){
-						game.pause();
-					}
-					else{
-						event.obstacle=event.obstacles.randomGet();
-					}
-					event.switchToAuto=function(){
-						event.obstacle=event.obstacles.randomGet();
-						game.resume();
-					};
-				}
-				else{
-					delete event.bufang;
-				}
-				'step 3'
-				if(event.dialog){
-					event.dialog.close();
-					delete event.dialog;
-				}
-				if(event.chooseObstacle){
-					game.removeObstacle(event.obstacle.dataset.position);
-					game.addChessPlayer(event.currentBufang,'treasure',0,event.obstacle.dataset.position).life=3;
-					event.chooseObstacle=false;
-					event.goto(2);
-				}
-				else{
-					if(event.obstacles){
-						for(var i=0;i<event.obstacles.length;i++){
-							event.obstacles[i].classList.remove('glow');
-						}
-						delete event.obstacles;
-					}
-					delete event.obstacle;
-					delete event.currentBufang;
-				}
-				'step 4'
-				if(event.dialog){
-					event.dialog.close();
-					delete event.dialog;
-				}
-				if(event.zhaomu.length){
-					event.currentZhaomu=event.zhaomu.shift();
-					event.dialog=ui.create.dialog('选择一个位置安排【'+get.translation(event.currentZhaomu)+'】');
-					var size=ui.chesswidth*(ui.chessheight-1);
-					var clickGrid=function(){
-						var player=game.addChessPlayer(event.currentZhaomu,false,4,this.dataset.position);
-						_status.friends.push(player);
-						if(!game.me.name){
-							game.me=player;
-							game.me.classList.add('current_action');
-							ui.me.querySelector('.fakeme.avatar').show();
-							ui.me.querySelector('.fakeme.player').show();
-							ui.create.fakeme();
-							ui.handcards1=player.node.handcards1.animate('start').fix();
-							ui.handcards2=player.node.handcards2.animate('start').fix();
-							ui.handcards1Container.appendChild(ui.handcards1);
-							ui.handcards2Container.appendChild(ui.handcards2);
-							ui.updatehl();
-							game.setChessInfo();
-							game.addVideo('tafangMe',player);
-						}
-						this.delete();
-						event.redo();
-						game.resume();
-					}
-					if(!event.playergrids){
-						event.playergrids=[]
-						for(var i=ui.chesswidth;i<size;i++){
-							if(!lib.posmap[i.toString()]){
-								var grid=ui.create.div('.player.minskin.playerblank.glow',clickGrid,ui.chess);
-								grid.animate('start');
-								grid.dataset.position=i;
-								event.playergrids.push(grid);
-							}
-						}
-					}
-					game.pause();
-					if(_status.auto){
-						setTimeout(function(){
-							clickGrid.call(event.playergrids.randomGet());
-						},50);
-					}
-					event.switchToAuto=function(){
-						clickGrid.call(event.playergrids.randomGet());
-					}
-				}
-				else{
-					delete event.zhaomu;
-				}
-				'step 5'
-				_status.imchoosing=false;
-				ui.auto.show();
-				game.delay();
-				if(event.dialog){
-					event.dialog.close();
-					delete event.dialog;
-				}
-				if(event.playergrids){
-					for(var i=0;i<event.playergrids.length;i++){
-						event.playergrids[i].delete();
-					}
-					delete event.playergrids;
-				}
-				delete event.currentZhaomu;
-				'step 6'
-				var shalldelay=false;
-				for(var i=0;i<ui.chesswidth;i++){
-					if(lib.posmap[i]&&game.players.contains(lib.posmap[i])){
-						for(var j=0;j<ui.chessheight;j++){
-							var pos=i+j*ui.chesswidth;
-							if(lib.posmap[pos]&&lib.posmap[pos].movable(0,1)){
-								break;
-							}
-						}
-						if(j<ui.chessheight){
-							shalldelay=true;
-							for(var k=j;k>=0;k--){
-								var pos=i+k*ui.chesswidth;
-								if(lib.posmap[pos]){
-									lib.posmap[pos].moveDown();
-								}
-							}
-						}
-					}
-				}
-				if(shalldelay) game.delay();
-				'step 7'
-				event.justadded=[];
-				if(_status.characterList.length){
-					if(_status.enemies.length<ui.chesswidth*2){
-						var list1=[];
-						for(var i=0;i<ui.chesswidth;i++){
-							if(!lib.posmap[i]){
-								list1.push(i);
-							}
-						}
-						if(list1.length){
-							var enemy=game.addChessPlayer(_status.characterList.shift(),true,4,list1.randomRemove());
-							_status.enemies.push(enemy);
-							event.justadded.push(enemy.name);
-							if(game.players.length==1){
-								ui.me.querySelector('.fakeme.player').show();
-								game.setChessInfo(game.players[0]);
-							}
-							game.delay();
-						}
-						// var difficulty=get.config('tafang_difficulty');
-						// if(_status.turnCount>=10&&list1.length&&difficulty>1){
-						// 	var enemy=game.addChessPlayer(_status.characterList.shift(),true,4,list1.randomRemove());
-						// 	_status.enemies.push(enemy);
-						// 	event.justadded.push(enemy.name);
-						// }
-						// if(_status.turnCount>=20&&list1.length&&difficulty>1){
-						// 	var enemy=game.addChessPlayer(_status.characterList.shift(),true,4,list1.randomRemove());
-						// 	_status.enemies.push(enemy);
-						// 	event.justadded.push(enemy.name);
-						// }
-						// if(list1.length&&difficulty>2){
-						// 	var enemy=game.addChessPlayer(_status.characterList.shift(),true,4,list1.randomRemove());
-						// 	_status.enemies.push(enemy);
-						// 	event.justadded.push(enemy.name);
-						// }
-					}
-				}
-				else{
-					game.over(true);
-				}
-				'step 8'
-				if(event.xingdong.length){
-					var toact=event.xingdong.shift();
-					if(game.players.contains(toact)){
-						toact.phase();
-					}
-					event.redo();
-				}
-				else{
-					event.xingdong=_status.enemies.slice(0);
-				}
-				'step 9'
-				if(event.xingdong.length){
-					var enemy=event.xingdong.shift();
-					if(!event.justadded.contains(enemy.name)&&game.players.contains(enemy)){
-						enemy.phase();
-					}
-					event.redo();
-				}
-				else{
-					event.mechlist=game.treasures.slice(0);
-				}
-				'step 10'
-				if(event.mechlist.length){
-					var mech=event.mechlist.shift();
-					var info=lib.skill[mech.name+'_skill'];
-					if(!info.filter||info.filter(mech)){
-						var next=game.createEvent('chessMech');
-						next.player=mech;
-						next.content=info.content;
-						mech.chessFocus();
-						if(lib.config.animation&&!lib.config.low_performance){
-							mech.$epic2();
-						}
-						game.delay();
-					}
-					if(mech.life--<=0){
-						game.treasures.remove(mech);
-						setTimeout(function(){
-							mech.delete();
-						},500);
-						delete lib.posmap[mech.dataset.position];
-						game.addVideo('deleteChessPlayer',mech);
-						game.addObstacle(mech.dataset.position);
-						game.log(get.translation(mech)+'使用期限已到');
-					}
-					event.redo();
-				}
-				'step 11'
-				delete event.xingdong;
-				delete event.mechlist;
-				if(_status.turnCount>=_status.turnTotal){
-					game.over(true);
-				}
-				else{
-					event.goto(0);
-					game.delay();
-				}
-			}
-		},
 		phaseLoopOrdered:function(player){
 			var next=game.createEvent('phaseLoop');
 			next.player=player;
-			next.content=function(){
+			next.setContent(function(){
 				"step 0"
 				var passed=false;
 				for(var i=0;i<game.players.length;i++){
@@ -2193,7 +1729,7 @@ mode.chess={
 						game.removeTreasure(game.treasures[i--]);
 					}
 				}
-			}
+			});
 		},
 		isChessNeighbour:function(a,b){
 			if(a&&a.dataset){
@@ -2212,27 +1748,6 @@ mode.chess={
 			if(ay==by&&Math.abs(ax-bx)==1) return true;
 
 			return false;
-		},
-		$randomMove:function(player,node,length,rand){
-			length=length+Math.random()*rand;
-			var ang=Math.random()*360;
-			ang*=Math.PI/180;
-			var tx=length*Math.cos(ang);
-			var ty=length*Math.sin(ang);
-			var rect=player.getBoundingClientRect();
-			if(rect.left<=80){
-				tx=Math.abs(tx);
-			}
-			else if(rect.left+rect.width+80>=ui.chessContainer.offsetWidth){
-				tx=-Math.abs(tx);
-			}
-			if(rect.top<=80){
-				ty=Math.abs(ty);
-			}
-			else if(rect.top+rect.height+80>=ui.chessContainer.offsetHeight){
-				ty=-Math.abs(ty);
-			}
-			node.style.transform='translate('+tx+'px,'+ty+'px)';
 		},
 		draw2:function(func){
 			lib.canvasUpdates2.push(func);
@@ -2284,7 +1799,7 @@ mode.chess={
 				var node=ui.create.div('.avatar',ui.chessinfo);
 				node.style.backgroundImage=p.node.avatar.style.backgroundImage;
 				node.link=p;
-				node.listen(game.clickChessInfo);
+				node.listen(ui.click.chessInfo);
 				p.instance=node;
 				if(_status.currentPhase==p){
 					node.classList.add('glow2');
@@ -2301,21 +1816,9 @@ mode.chess={
 				character:[]
 			});
 		},
-		clickChessInfo:function(e){
-			if(this.link.isAlive()){
-				this.link.chessFocus();
-				if(this.link.classList.contains('selectable')||
-				this.link.classList.contains('selected')){
-					// this.link.click();
-					ui.click.target.call(this.link,e);
-					ui.click.window.call(ui.window,e);
-				}
-				e.stopPropagation();
-			}
-		},
 		leaderView:function(){
 			var next=game.createEvent('leaderView',false);
-			next.content=function(){
+			next.setContent(function(){
 				'step 0'
 				var save=get.config('chess_leader_save');
 				if(!save){
@@ -3703,7 +3206,7 @@ mode.chess={
 				ui.wuxie.show();
 				ui.auto.show();
 				game.delay();
-			}
+			});
 		},
 		saveData:function(){
 			game.save(get.config('chess_leader_save'),game.data);
@@ -3765,7 +3268,7 @@ mode.chess={
 					player.init(list[0]);
 				}
 			}
-			next.content=function(){
+			next.setContent(function(){
 				"step 0"
 				ui.wuxie.hide();
 				var i;
@@ -3782,7 +3285,6 @@ mode.chess={
 						continue;
 					}
 					if(i.indexOf('treasure_')==0) continue;
-					if(i.indexOf('chess_mech_')==0) continue;
 					if(lib.character[i][4].contains('minskin')) continue;
 					if(lib.config.forbidchess.contains(i)) continue;
 					if(lib.filter.characterDisabled(i)) continue;
@@ -3903,7 +3405,7 @@ mode.chess={
 					// this.dialog.versus_first_less=this.dialog.add(ui.create.switcher('versus_first_less',lib.storage.first_less)).querySelector('.toggle');
 					dialog.choice.reward=dialog.add(ui.create.switcher('reward',[0,1,2,3,4],get.config('reward'))).querySelector('.toggle');
 					dialog.choice.punish=dialog.add(ui.create.switcher('punish',['弃牌','无','摸牌'],get.config('punish'))).querySelector('.toggle');
-					dialog.choice.seat_order=dialog.add(ui.create.switcher('seat_order',['交替','随机'],get.config('seat_order'))).querySelector('.toggle');
+					dialog.choice.seat_order=dialog.add(ui.create.switcher('seat_order',['指定','交替'],get.config('seat_order'))).querySelector('.toggle');
 					dialog.choice.battle_number=dialog.add(ui.create.switcher('battle_number',[1,2,3,4,6,8],get.config('battle_number'))).querySelector('.toggle');
 					dialog.choice.replace_number=dialog.add(ui.create.switcher('replace_number',[0,1,2,3,5,7,9,17],get.config('replace_number'))).querySelector('.toggle');
 					dialog.choice.choice_number=dialog.add(ui.create.switcher('choice_number',[3,6,9],get.config('choice_number'))).querySelector('.toggle');
@@ -4018,24 +3520,32 @@ mode.chess={
 						game.changeCoin(-3);
 					}
 					list.randomSort();
-					_status.event.dialog.close();
-					var dialog=ui.create.dialog('选择出场角色','hidden');
-					_status.event.dialog=dialog;
-					dialog.classList.add('fullwidth');
-					dialog.classList.add('fullheight');
-					dialog.classList.add('fixed');
-					dialog.add('0/'+_status.event.selectButton());
-					dialog.add([list.slice(0,parseInt(get.config('battle_number'))*4+parseInt(get.config('replace_number'))+5),'character']);
-					if(bossbuttons.length){
-						dialog.add('挑战魔王');
-						dialog.add(bosses);
-					}
-					if(jiangebuttons.length){
-						dialog.add('守卫剑阁');
-						dialog.add(jiange);
-					}
-					event.addConfig(dialog);
-					dialog.open();
+
+					var buttons=ui.create.div('.buttons');
+					var node=_status.event.dialog.buttons[0].parentNode;
+					_status.event.dialog.buttons=ui.create.buttons(list.slice(0,parseInt(get.config('battle_number'))*4+parseInt(get.config('replace_number'))+5),'character',buttons);
+					_status.event.dialog.content.insertBefore(buttons,node);
+					buttons.animate('start');
+					node.remove();
+
+					// _status.event.dialog.close();
+					// var dialog=ui.create.dialog('选择出场角色','hidden');
+					// _status.event.dialog=dialog;
+					// dialog.classList.add('fullwidth');
+					// dialog.classList.add('fullheight');
+					// dialog.classList.add('fixed');
+					// dialog.add('0/'+_status.event.selectButton());
+					// dialog.add([list.slice(0,parseInt(get.config('battle_number'))*4+parseInt(get.config('replace_number'))+5),'character']);
+					// if(bossbuttons.length){
+					// 	dialog.add('挑战魔王');
+					// 	dialog.add(bosses);
+					// }
+					// if(jiangebuttons.length){
+					// 	dialog.add('守卫剑阁');
+					// 	dialog.add(jiange);
+					// }
+					// event.addConfig(dialog);
+					// dialog.open();
 					game.uncheck();
 					game.check();
 				};
@@ -4063,16 +3573,11 @@ mode.chess={
 							if(ui.cheat){
 								ui.cheat.style.opacity=1;
 							}
-							if(ui.cheat2x){
-								ui.cheat2x.close();
-								delete ui.cheat2x;
-							}
 						}
 						else{
 							if(game.changeCoin){
 								game.changeCoin(-10);
 							}
-							ui.cheat2x=ui.create.groupControl(_status.event.parent.dialogxx);
 							this.backup=_status.event.dialog;
 							_status.event.dialog.close();
 							_status.event.dialog=_status.event.parent.dialogxx;
@@ -4100,10 +3605,6 @@ mode.chess={
 					ui.cheat2.close();
 					delete ui.cheat2;
 				}
-				if(ui.cheat2x){
-					ui.cheat2x.close();
-					delete ui.cheat2x;
-				}
 				if(event.asboss){
 					event.asboss.close();
 					delete ui.asboss;
@@ -4112,7 +3613,9 @@ mode.chess={
 				ui.control.style.top='';
 				ui.control.style.transition='';
 
-
+				for(var i=0;i<result.links.length;i++){
+					game.addRecentCharacter(result.links[i]);
+				}
 				if(_status.mode=='combat'){
 					_status.mylist=result.links.slice(0,parseInt(get.config('battle_number')));
 					_status.replacelist=result.links.slice(parseInt(get.config('battle_number')));
@@ -4160,7 +3663,7 @@ mode.chess={
 				if(_status.mode=='combat'&&get.config('additional_player')){
 					_status.additionallist=event.list;
 				}
-			}
+			});
 		},
 		modeSwapPlayer:function(player){
 			var content=[game.me.dataset.position,player.dataset.position];
@@ -4173,197 +3676,12 @@ mode.chess={
 		}
 	},
 	skill:{
-		chess_mech_weixingxianjing_skill:{
-			filter:function(player){
-				for(var i=0;i<_status.enemies.length;i++){
-					if(!_status.enemies[i].isTurnedOver()&&
-						get.chessDistance(player,_status.enemies[i])<=2){
-						return true;
-					}
-				}
-				return false;
-			},
-			content:function(){
-				var list=[];
-				for(var i=0;i<_status.enemies.length;i++){
-					if(!_status.enemies[i].isTurnedOver()&&
-						get.chessDistance(player,_status.enemies[i])<=2){
-						list.push(_status.enemies[i]);
-					}
-				}
-				if(list.length){
-					game.log('小型陷阱发动');
-					var target=list.randomGet();
-					target.turnOver();
-					player.line(target,'green');
-				}
-			}
-		},
-		chess_mech_nengliangqiu_skill:{
-			filter:function(player){
-				for(var i=0;i<_status.friends.length;i++){
-					if(get.chessDistance(player,_status.friends[i])<=3){
-						return true;
-					}
-				}
-				return false;
-			},
-			content:function(){
-				var list1=[],list2=[];
-				for(var i=0;i<_status.friends.length;i++){
-					if(get.chessDistance(player,_status.friends[i])<=1){
-						list2.push(_status.friends[i]);
-					}
-					else if(get.chessDistance(player,_status.friends[i])<=3){
-						list1.push(_status.friends[i]);
-					}
-					// else if(get.chessDistance(player,_status.friends[i])<=4){
-					// 	list2.push(_status.friends[i]);
-					// }
-				}
-				if(list2.length){
-					game.asyncDraw(list2,2);
-					player.line(list2,'green');
-				}
-				if(list1.length){
-					game.asyncDraw(list1);
-					player.line(list1,'green');
-				}
-				if(list1.length||list2.length){
-					game.log('能量球发动');
-				}
-			}
-		},
-		chess_mech_mutong_skill:{
-			filter:function(player){
-				for(var i=0;i<_status.enemies.length;i++){
-					if(get.chessDistance(player,_status.enemies[i])<=3){
-						return true;
-					}
-				}
-				return false;
-			},
-			content:function(){
-				var list=[];
-				for(var i=0;i<_status.enemies.length;i++){
-					if(get.chessDistance(player,_status.enemies[i])<=3){
-						list.push(_status.enemies[i]);
-					}
-				}
-				if(list.length){
-					game.log('木桶发动');
-					var targets=list.randomGets(1);
-					player.line(targets,'green');
-					for(var i=0;i<targets.length;i++){
-						targets[i].damage('nosource');
-					}
-				}
-			}
-		},
-		chess_mech_guangmingquan_skill:{
-			filter:function(player){
-				for(var i=0;i<_status.friends.length;i++){
-					if(_status.friends[i].hp<_status.friends[i].maxHp&&
-						get.chessDistance(player,_status.friends[i])<=2){
-						return true;
-					}
-				}
-				return false;
-			},
-			content:function(){
-				var list=[];
-				for(var i=0;i<_status.friends.length;i++){
-					if(_status.friends[i].hp<_status.friends[i].maxHp&&
-						get.chessDistance(player,_status.friends[i])<=2){
-						list.push(_status.friends[i]);
-					}
-				}
-				if(list.length){
-					game.log('光明泉发动');
-					player.line(list,'green');
-					while(list.length){
-						list.shift().recover();
-					}
-				}
-			}
-		},
-		chess_mech_jiguanren_skill:{
-			filter:function(player){
-				for(var i=0;i<_status.enemies.length;i++){
-					if(get.chessDistance(player,_status.enemies[i])<=3){
-						return true;
-					}
-				}
-				return false;
-			},
-			content:function(){
-				'step 0'
-				var list=[];
-				for(var i=0;i<_status.enemies.length;i++){
-					if(get.chessDistance(player,_status.enemies[i])<=3){
-						list.push(_status.enemies[i]);
-					}
-				}
-				if(list.length){
-					game.log('机关人发动');
-					player.line(list,'green');
-					event.list=list;
-				}
-				else{
-					event.finish();
-				}
-				'step 1'
-				if(event.list.length){
-					var target=event.list.shift();
-					var he=target.get('he');
-					if(he.length){
-						target.discard(he.randomGets(Math.ceil(Math.random()*2)));
-					}
-					event.redo();
-				}
-			}
-		},
-		chess_mech_gongchengche_skill:{
-			filter:function(player){
-				for(var i=0;i<_status.enemies.length;i++){
-					if(get.chessDistance(player,_status.enemies[i])<=2){
-						return true;
-					}
-				}
-				return false;
-			},
-			content:function(){
-				'step 0'
-				var list=[];
-				for(var i=0;i<_status.enemies.length;i++){
-					if(get.chessDistance(player,_status.enemies[i])<=2){
-						list.push(_status.enemies[i]);
-					}
-				}
-				if(list.length){
-					game.log('攻城车发动');
-					event.target=list.randomGet();
-					player.playerfocus(1000);
-					player.line(event.target,'fire');
-					game.delay(2);
-				}
-				else{
-					event.finish();
-				}
-				'step 1'
-				if(event.target){
-					event.target.damage('fire','nosource');
-					event.target.moveUp();
-				}
-			}
-		},
 		_attackmove:{
 			trigger:{player:'damageEnd'},
 			forced:true,
 			popup:false,
 			priority:50,
 			filter:function(event,player){
-				if(!get.config('attack_move')) return false;
 				if(!event.source) return false;
 				if(get.distance(event.source,player,'pure')>2) return false;
 				var xy1=event.source.getXY();
@@ -4745,7 +4063,7 @@ mode.chess={
 			},
 			chance:function(target,player){
 				var chance;
-				var renyi=player.skills.contains('leader_renyi');
+				var renyi=player.hasSkill('leader_renyi');
 				switch(target.hp){
 					case 1:chance=0.7;break;
 					case 2:chance=0.4;break;
@@ -4874,7 +4192,7 @@ mode.chess={
 							str+='、'+get.translation(list[i]);
 						}
 					}
-					var skill=player.additionalSkills.tongshuai;
+					var skill=player.additionalSkills.tongshuai[0];
 					if(skill){
 						str+='<p>当前技能：'+get.translation(skill);
 					}
@@ -4889,7 +4207,7 @@ mode.chess={
 					if(list.length){
 						dialog.addSmall([list,'character']);
 					}
-					var skill=player.additionalSkills.tongshuai;
+					var skill=player.additionalSkills.tongshuai[0];
 					if(skill){
 						dialog.add('<div><div class="skill">【'+get.translation(skill)+
 						'】</div><div>'+lib.translate[skill+'_info']+'</div></div>');
@@ -4939,7 +4257,7 @@ mode.chess={
 			audio:2,
 			trigger:{player:['phaseBegin','phaseEnd'],global:'gameStart'},
 			filter:function(event,player,name){
-				if(!player.skills.contains('tongshuai')) return false;
+				if(!player.hasSkill('tongshuai')) return false;
 				if(name=='phaseBegin'&&game.phaseNumber==1) return false;
 				return true;
 			},
@@ -4973,7 +4291,7 @@ mode.chess={
 							}
 							mark.setBackground(currentname,'character');
 
-							player.additionalSkills.tongshuai=link;
+							player.addAdditionalSkill('tongshuai',link);
 							game.addVideo('chess_tongshuai_skill',player,[currentname,link]);
 							player.logSkill('tongshuai2');
 							game.log(player,'获得技能','【'+get.translation(link)+'】');
@@ -5117,7 +4435,7 @@ mode.chess={
 							if(card.name=='shunshou') return;
 							if(card.name=='yuanjiao') return;
 							if(card.name=='yiyi') return;
-							if(!player.skills.contains('cangming2')) return [0,0,0,0];
+							if(!player.hasSkill('cangming2')) return [0,0,0,0];
 						}
 					}
 				},
@@ -5281,7 +4599,7 @@ mode.chess={
 				result:{
 					target:function(player,target){
 						var added=false;
-						if(!player.skills.contains('unequip')){
+						if(!player.hasSkill('unequip')){
 							added=true;
 							player.skills.push('unequip');
 						}
@@ -5381,7 +4699,6 @@ mode.chess={
 			delay:false,
 			preservecancel:true,
 			filter:function(event,player){
-				if(_status.mode=='tafang') return false;
 				var num=0;
 				var xy=player.getXY();
 				if(game.obstacles.contains(player.getNeighbour(-1,0))||xy[0]==0) num++;
@@ -5463,12 +4780,9 @@ mode.chess={
 				if(current){
 					current.classList.remove('glow2');
 				}
-				for(var i=0;i<ui.phasequeue.length;i++){
-					if(ui.phasequeue[i].link==player){
-						ui.phasequeue[i].classList.add('glow2');
-						ui.chessinfo.scrollTop=ui.phasequeue[i].offsetTop-8;
-						break;
-					}
+				if(player.instance){
+					player.instance.classList.add('glow2');
+					ui.chessinfo.scrollTop=player.instance.offsetTop-8;
 				}
 			}
 		},
@@ -5483,14 +4797,12 @@ mode.chess={
 					!player.movable(1,0)&&!player.movable(-1,0)){
 					return false;
 				}
-				// var move=player.skills.contains('noactpunish')?2:1;
 				var move=2;
 				move=game.checkMod(player,move,'chessMove',player.get('s'));
 				return move>0;
 			},
 			content:function(){
 				"step 0"
-				// var move=player.skills.contains('noactpunish')?2:1;
 				var move=2;
 				move=game.checkMod(player,move,'chessMove',player.get('s'));
 				player.chooseToMove(move).phasing=true;
@@ -5510,7 +4822,7 @@ mode.chess={
 				order:5,
 				result:{
 					playerx:function(player){
-						if(_status.mode=='tafang'&&_status.enemies.contains(player)){
+						if(get.mode()=='tafang'&&_status.enemies.contains(player)){
 							return 1;
 						}
 						var nh=player.num('h');
@@ -5564,7 +4876,7 @@ mode.chess={
 			popup:false,
 			filter:function(event,player){
 				if(event.autochoose&&event.autochoose()) return false;
-				if(_status.mode=='combat'&&!get.config('single_control')) return false;
+				if(lib.config.mode=='chess'&&_status.mode=='combat'&&!get.config('single_control')) return false;
 				return player.isUnderControl();
 			},
 			content:function(){
@@ -5878,31 +5190,12 @@ mode.chess={
 
 		mode_chess_character_config:'战棋模式',
 		mode_chess_card_config:'战棋模式',
-
-		chess_mech_weixingxianjing:'小型陷阱',
-		chess_mech_weixingxianjing_skill:'捕猎',
-		chess_mech_weixingxianjing_skill_info:'每一轮令距离你2格以内的一名随机敌人翻面',
-		chess_mech_mutong:'木桶',
-		chess_mech_mutong_skill:'飞滚',
-		chess_mech_mutong_skill_info:'每一轮对距离3格以内的一名随机敌人造成一点伤害',
-		chess_mech_nengliangqiu:'能量球',
-		chess_mech_nengliangqiu_skill:'充能',
-		chess_mech_nengliangqiu_skill_info:'每一轮令距离3格以内的所有友方角色摸1张牌，距离1以内改为摸2张',
-		chess_mech_jiguanren:'机关人',
-		chess_mech_jiguanren_skill:'掠夺',
-		chess_mech_jiguanren_skill_info:'每一轮弃置3格以内的所有敌方角色各1~2张牌',
-		chess_mech_gongchengche:'攻城车',
-		chess_mech_gongchengche_skill:'攻坚',
-		chess_mech_gongchengche_skill_info:'每一轮对距离2格以内的一名随机敌方角色造成1点火焰伤害，并将目标击退1格',
-		chess_mech_guangmingquan:'光明泉',
-		chess_mech_guangmingquan_skill:'圣疗',
-		chess_mech_guangmingquan_skill_info:'每一轮令距离2格以内的所有友方角色各回复一点体力',
 	},
 	ui:{
 		create:{
 			playergrid:function(player,x,y){
 				var pos=player.getDataPos(x,y);
-				if(_status.mode=='tafang'){
+				if(get.mode()=='tafang'){
 					if(pos<ui.chesswidth) return false;
 					if(pos/ui.chesswidth>=ui.chessheight-1) return false;
 				}
@@ -5920,6 +5213,17 @@ mode.chess={
 			}
 		},
 		click:{
+			chessInfo:function(e){
+				if(this.link.isAlive()){
+					this.link.chessFocus();
+					if(this.link.classList.contains('selectable')||
+						this.link.classList.contains('selected')){
+						ui.click.target.call(this.link,e);
+						ui.click.window.call(ui.window,e);
+					}
+					e.stopPropagation();
+				}
+			},
 			playergrid:function(){
 				if(!_status.paused) return;
 				var pos=parseInt(this.dataset.position);
@@ -5954,6 +5258,7 @@ mode.chess={
 	ai:{
 		get:{
 			attitude:function(from,to){
+				if(!from||!to) return 0;
 				var t=(from.side===to.side?1:-1);
 				if(from.isMad()){
 					t=-t;
@@ -6133,37 +5438,23 @@ mode.chess={
 			color:'white',
 			opacity:1,
 			textShadow:'black 0 0 2px',
-			image:'card/leader_easy'
+			image:'mode/chess/difficulty/leader_easy'
 		},
 		leader_medium:{
 			color:'white',
 			opacity:1,
 			textShadow:'black 0 0 2px',
-			image:'card/leader_medium'
+			image:'mode/chess/difficulty/leader_medium'
 		},
 		leader_hard:{
 			color:'white',
 			opacity:1,
 			textShadow:'black 0 0 2px',
-			image:'card/leader_hard'
+			image:'mode/chess/difficulty/leader_hard'
 		}
 	},
 	characterPack:{
 		mode_chess:{
-			treasure_dubiaoxianjing:['','',0,['dubiaoxianjing'],['boss']],
-			treasure_jiqishi:['','',0,['jiqishi'],['boss']],
-			treasure_shenmidiaoxiang:['','',0,['shenmidiaoxiang'],['boss']],
-			treasure_shenpanxianjing:['','',0,['shenpanxianjing'],['boss']],
-			treasure_shiyuansu:['','',0,['shiyuansu'],['boss']],
-			treasure_wuyashenxiang:['','',0,['wuyashenxiang'],['boss']],
-
-			chess_mech_guangmingquan:['','',0,['chess_mech_guangmingquan_skill'],['boss']],
-			chess_mech_nengliangqiu:['','',0,['chess_mech_nengliangqiu_skill'],['boss']],
-			chess_mech_jiguanren:['','',0,['chess_mech_jiguanren_skill'],['boss']],
-			chess_mech_weixingxianjing:['','',0,['chess_mech_weixingxianjing_skill'],['boss']],
-			chess_mech_mutong:['','',0,['chess_mech_mutong_skill'],['boss']],
-			chess_mech_gongchengche:['','',0,['chess_mech_gongchengche_skill'],['boss']],
-
 			leader_caocao:['male','wei',4,['leader_xiaoxiong']],
 			leader_liubei:['male','shu',4,['leader_renyi']],
 			leader_sunquan:['male','wu',4,['leader_mouduan']],
@@ -6208,18 +5499,18 @@ mode.chess={
 			chess_xingtian:['male','qun',99,['boss_moyan','wushuang'],['boss','chessboss']],
 		}
 	},
-	cardPack:{
-		mode_chess:['chess_shezhang','chess_chuzhang']
-	},
+	// cardPack:{
+	// 	mode_chess:['chess_shezhang','chess_chuzhang']
+	// },
 	chess_cardlist:[],
 	chess_obstaclelist:[
-		['club',3,'chess_shezhang'],
-		['spade',5,'chess_shezhang'],
-		['spade',7,'chess_shezhang'],
-		['diamond',1,'chess_chuzhang'],
-		['diamond',4,'chess_chuzhang'],
-		['heart',8,'chess_chuzhang'],
-		// ['diamond',9,'chess_chuzhang'],
+		// ['club',3,'chess_shezhang'],
+		// ['spade',5,'chess_shezhang'],
+		// ['spade',7,'chess_shezhang'],
+		// ['diamond',1,'chess_chuzhang'],
+		// ['diamond',4,'chess_chuzhang'],
+		// ['heart',8,'chess_chuzhang'],
+		// // ['diamond',9,'chess_chuzhang'],
 	],
 	rank:{
 		rarity:{
@@ -6252,7 +5543,6 @@ mode.chess={
 	            'swd_murongshi',
 	            'shen_lvmeng',
 	            'chenlin',
-	            'hs_zhouzhuo',
 	            'diy_caiwenji',
 	            're_luxun',
 	            'shen_zhaoyun',
@@ -6261,8 +5551,24 @@ mode.chess={
 	            'shen_simayi',
 	            'shen_guanyu',
 	            'hs_siwangzhiyi',
+				'chengyu',
+				'yangxiu',
+				'hs_yogg',
+				'hs_malygos',
+				'hs_ysera',
+				'hanba',
 	        ],
 	        epic:[
+				'lingju',
+				'daxiaoqiao',
+				'sunxiu',
+				'swd_weida',
+				'swd_lilian',
+				'yxs_luban',
+				'hs_alextrasza',
+				'zhugeguo',
+				'sp_caiwenji',
+				'ow_yuanshi',
 	            'xk_fujianhan',
 	            'diy_zhenji',
 	            'swd_jipeng',
@@ -6281,7 +5587,7 @@ mode.chess={
 	            'hs_bchillmaw',
 	            'swd_lanyin',
 	            'gjqt_xiayize',
-	            'hs_edwin',
+	            'hs_aedwin',
 	            'hs_antonidas',
 	            'swd_chenjingchou',
 	            'yxs_yangyuhuan',
@@ -6312,8 +5618,64 @@ mode.chess={
 	            'gjqt_fanglansheng',
 	            'swd_qiner',
 	            'hs_xsylvanas',
+				'zhongyao',
+				'hs_blingtron',
+				'hs_fuding',
+				'shixie',
+				'hs_lafamu',
+				'hs_nozdormu',
+				'ow_tianshi',
+				'yxs_guiguzi',
+				'ow_zhixuzhiguang',
+				'hs_jiaziruila',
+				'hs_yelise',
+				'hs_xuefashi',
+				'hs_liadrin',
+				'yxs_libai',
 	        ],
 	        rare:[
+				'sunluban',
+				'sunluyu',
+				'zhangliang',
+				'zhangbao',
+				'sp_zhangjiao',
+				'swd_xiyan',
+				'sunluban',
+				'ow_falaozhiying',
+				'yxs_kaisa',
+				'yxs_napolun',
+				'hs_nate',
+				'yxs_jinke',
+				'yxs_yuefei',
+				'guyong',
+				'hs_anomalus',
+				'hs_jinglinglong',
+				'jiangqing',
+				'mayunlu',
+				're_liubei',
+				're_lidian',
+				'hs_alleria',
+				'jsp_huangyueying',
+				'hs_lreno',
+				'hs_zhouzhuo',
+				'cenhun',
+				'hs_loatheb',
+				'sunziliufang',
+				'hs_finley',
+				'ow_chanyata',
+				'yxs_huamulan',
+				'cuiyan',
+				'wangji',
+				'xin_liru',
+				'swd_quxian',
+				'caorui',
+				'ow_liekong',
+				'ow_zhixuzhiguang',
+				'lifeng',
+				'sundeng',
+				'hs_xialikeer',
+				'hs_sainaliusi',
+				'hs_lrhonin',
 	            'yxs_diaochan',
 	            'hs_anduin',
 	            'swd_hengai',
@@ -6328,6 +5690,7 @@ mode.chess={
 	            'diy_yuji',
 	            're_zhangliao',
 	            'caoang',
+				'hs_zhishigushu',
 	            'pal_jingtian',
 	            'swd_shanxiaoxiao',
 	            'yxs_caocao',
@@ -6412,20 +5775,15 @@ mode.chess={
 		'杀死对方阵营的角色可摸一张牌，杀死本方阵营无惩罚<li>'+
 		'若开启主将，双方各选择一名角色成为主将。主将体力上限加一，主将死亡后，若有副将，副将代替之成为主将，否则游戏结束<li>'+
 		'开启无尽模式后，任何一方有角色死亡都将选择一名新角色重新加入战场，直到点击左上角的结束游戏按钮手动结束游戏。结束游戏时，杀敌更多的一方获胜<li>'+
-		'开启交替行动时，双方无论存活角色角色多少都将轮流进行行动。在一方所有角色行动完毕进行下一轮行动时，若其人数比另一方少，另一方可指定至多X名角色名摸一张牌，X为人数之差<li>'+
+		'行动顺序为指定时，双方无论存活角色角色多少都将轮流进行行动。在一方所有角色行动完毕进行下一轮行动时，若其人数比另一方少，另一方可指定至多X名角色名摸一张牌，X为人数之差<li>'+
 		'开启战场机关后，每个回合结束时有一定机率出现一个机关，该机关不参与战斗，并有一个影响周围或全体角色的效果。机关在出现后的5〜10个回合内消失<li>'+
 		'开启击退效果后，当一名角色对距离两格以内的目标造成伤害后，受伤害角色将沿反方向移动一格<li>'+
 		'战场上可设置出现随机路障，角色无法移动到路障处。当一名角色的周围四格有至少三格为路障或在战场外时，其可以在回合内清除一个相邻路障</ul>'+
 		'<div style="margin:10px">君主模式</div><ul style="margin-top:0"><li>收集武将进行战斗，根据战斗难度及我方出场武将的强度，战斗胜利后将获得数量不等的金钱。没有君主出场时，获得的金钱较多<li>'+
 		'金钱可以用来招募随机武将，招到已有武将，或遣返不需要的武将时可得到招募令<li>'+
 		'战斗中有君主出场时可招降敌将，成功率取决于敌将的稀有度、剩余体力值以及手牌数。成功后战斗立即结束且没有金钱奖励。每发动一次招降，无论成功还是失败，都会扣除10招募令<li>'+
-		'挑战武将会与该武将以及与其强度相近的武将进行战斗，敌方人数与我方出场人数相同，但不少于3。胜利后可通过招募令招募该武将<li>'+
+		'挑战武将会与该武将以及与其强度相近的武将进行战斗，敌方人数与我方出场人数相同，但不少于3。胜利后可通过招募令招募该武将，普通/稀有/史诗/传说武将分别需要40/100/400/1600招募令<li>'+
 		'竞技场：<br>随机选择9名武将，每次派出1〜3名武将参战。战斗中阵亡的武将不能再次上场。<br><br>战斗后武将进入疲劳状态，若立即再次出场则初始体力值-1。<br><br>战斗中本方武将行动时可召唤后援，令一名未出场的已方武将加入战斗。后援武将在战斗结束后无论存活与否均不能再次出场<br><br>当取得12场胜利或所有武将全部阵亡后结束，并根据胜场数获得随机奖励<li>'+
-		'修改金钱：<br>game.changeMoney<br>修改招募令：<br>game.changeDust</ul>'+
-		'<div style="margin:10px">塔防模式</div><ul style="margin-top:0"><li>阻上敌人到达最下方的出口，坚持到给定的回合数即获得胜利<li>'+
-		'每轮可获得10个行动点，用来布置机关、招募武将，或令武将行动。游戏难度将影响不同操作消耗的行动点数。未用完的行动点将减半并累积到下一轮<li>'+
-		'每一轮在最上方的一个随机位置增加一名敌人，若最上方已有角色，则将其下移一格<li>'+
-		'战场上最多出现3个相同的机关，每个机关在置入战场3轮后消失。战场上最多招募10名友方角色。<li>'+
-		'敌方角色到达底部出口时游戏失败，已方角色到达底部出口，将被移出游戏',
+		'修改金钱：<br>game.changeMoney<br>修改招募令：<br>game.changeDust</ul>'
 	},
 }

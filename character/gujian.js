@@ -13,6 +13,46 @@ character.gujian={
 		gjqt_aruan:['female','wu',3,['zhaolu','jiehuo','yuling']],
 	},
 	skill:{
+		meiying:{
+			global:'meiying2',
+			globalSilent:true,
+			trigger:{global:'phaseEnd'},
+			filter:function(event,player){
+				return event.player!=player&&!event.player.tempSkills.meiying3&&event.player.isAlive()&&player.num('he',{color:'red'})>0;
+			},
+			direct:true,
+			content:function(){
+				"step 0"
+				var next=player.chooseToDiscard('he','魅影：是否弃置一张红色牌视为对'+get.translation(trigger.player)+'使用一张杀？');
+				next.logSkill=['meiying',trigger.player];
+				var eff=ai.get.effect(trigger.player,{name:'sha'},player,player);
+				next.ai=function(card){
+					if(eff>0){
+						return 7-ai.get.value(card);
+					}
+					return 0;
+				}
+				"step 1"
+				if(result.bool){
+					player.useCard({name:'sha'},trigger.player).animate=false;
+				}
+			},
+			ai:{
+				expose:0.1
+			}
+		},
+		meiying2:{
+			trigger:{player:'useCard'},
+			filter:function(event,player){
+				return _status.currentPhase==player&&event.targets&&(event.targets.length>1||event.targets[0]!=player);
+			},
+			forced:true,
+			popup:false,
+			content:function(){
+				player.addTempSkill('meiying3','phaseAfter');
+			}
+		},
+		meiying3:{},
 		jianwu:{
 			trigger:{player:'shaBegin'},
 			forced:true,
@@ -48,7 +88,7 @@ character.gujian={
 				}
 				if(list.length){
 					event.target=list.randomGet();
-					event.target.popup('zuizhan');
+					player.line(event.target,'green');
 					game.log(event.target,'被追加为额外目标');
 					trigger.targets.push(event.target);
 					player.draw();
@@ -77,7 +117,7 @@ character.gujian={
 				threaten:1.3
 			}
 		},
-		meiying:{
+		meiying_old:{
 			trigger:{global:'phaseBefore'},
 			filter:function(event,player){
 				return event.player!=player&&!player.isTurnedOver()&&!player.storage.meiying;
@@ -167,7 +207,7 @@ character.gujian={
 				effect:{
 					target:function(card,player,target){
 						if(get.tag(card,'damage')){
-							if(player.skills.contains('jueqing')) return [1,-1.5];
+							if(player.hasSkill('jueqing')) return [1,-1.5];
 							return [1,0,0,-0.5];
 						}
 					}
@@ -331,7 +371,7 @@ character.gujian={
 				effect:{
 					target:function(card,player,target){
 						if(get.tag(card,'damage')&&target.num('h')==0){
-							if(player.skills.contains('jueqing')) return;
+							if(player.hasSkill('jueqing')) return;
 							return 0.1;
 						}
 					}
@@ -445,7 +485,7 @@ character.gujian={
 			trigger:{player:'phaseEnd'},
 			direct:true,
 			filter:function(event,player){
-				return player.maxHp>player.hp;
+				return player.maxHp>player.hp&&player.num('he',{color:'red'})>0;
 			},
 			content:function(){
 				"step 0"
@@ -606,15 +646,11 @@ character.gujian={
 			},
 			content:function(){
 				game.swapSeat(player,target,true,true);
-				player.useCard({name:'sha'},target);
+				player.useCard({name:'sha'},target,false);
 			},
 			ai:{
 				result:{
 					target:function(player,target){
-						if(player.num('h','sha')&&
-						lib.filter.targetInRange({name:'sha'},player,target)){
-							return 0;
-						}
 						return ai.get.effect(target,{name:'sha'},player,target);
 					},
 				},
@@ -1032,9 +1068,9 @@ character.gujian={
 		meihu2:'魅狐',
 		meihu_info:'当你受到伤害后，可令伤害来源交给你一张手牌',
 		jianwu:'剑舞',
-		jianwu_info:'锁定技，每当你使用一张杀，若你不在目标的攻击范围内，此杀不可闪避。',
+		jianwu_info:'锁定技，攻击范围不含你的角色无法闪避你的杀',
 		meiying:'魅影',
-		meiying_info:'在一名其他角色的回合开始前，若你的武将牌正面朝上，你可以进行一个额外回合，并在回合结束后翻面（若已翻面则不翻回来）。若如此做，你对其使用卡牌无视距离直到回合结束。',
+		meiying_info:'一名其他角色的回合结束时，若其未于此回合内使用过指定另一名角色为目标的牌，你可以弃置一张红色牌视为对其使用一张杀',
 		zhongji:'重击',
 		zhongji_info:'每当你即将造成伤害，可弃置一张黑色手牌令伤害+1',
 		zuizhan:'醉斩',
@@ -1070,7 +1106,7 @@ character.gujian={
 		boyun2:'拨云',
 		boyun_info:'在你的回合内，你可以弃置一张装备牌，并展示牌堆顶的一张牌，若其为装备牌，你须将其交给任意一张角色并对其造成一点伤害，否则你摸一张牌',
 		jizhan:'疾战',
-		jizhan_info:'出牌阶段限一次，你可以将移动到任意一名角色的前一位，视为对其使用了一张杀',
+		jizhan_info:'出牌阶段限一次，你可以将移动到任意一名角色的前一位，视为对其使用了一张不计入出杀次数的杀',
 		qianjun:'千军',
 		qianjun_info:'每当你使用一张杀，你可以弃置一张牌，令距离目标1以内的所有角色成为额外目标',
 		xuanning:'玄凝',
@@ -1080,7 +1116,7 @@ character.gujian={
 		yangming:'养命',
 		yangming2:'养命',
 		xuanning_info:'出牌阶段，你可以弃置一基本牌，获得至多3个玄凝标记。当你受到伤害时，若你有玄凝标记，你须弃置一个玄凝标记并弃置伤害来源一张牌',
-		liuguang_info:'回合开始阶段，若你有玄凝标记，你可以弃置一枚玄凝标记，选择至多三名角色依次令其弃置一张牌或受到一点伤害，若有角色受到伤害则终止结算',
+		liuguang_info:'回合开始阶段，若你有玄凝标记，你可以弃置一枚玄凝标记，选择至多三名角色依次令其选择一项：弃置一张牌，或受到一点伤害，并终止流光结算',
 		yangming_info:'出牌阶段，你可以弃置一张红色牌，并在下个出牌阶段结束时令距离1以内的任意名角色回复一点体力，在此之前不可再次发动',
 		zhaolu:'朝露',
 		jiehuo:'劫火',

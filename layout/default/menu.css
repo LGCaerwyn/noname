@@ -95,14 +95,6 @@
 	left:calc(50% - 200px);
 	top:calc(50% - 150px);
 }
-/*.menu.main.slideup{
-	animation:menuslideup 0.5s forwards;
-	-webkit-animation:menuslideup 0.5s forwards;
-}
-.menu.main.slidedown{
-	animation:menuslidedown 0.5s forwards;
-	-webkit-animation:menuslidedown 0.5s forwards;
-}*/
 .menu-container.hidden>.menu.main{
 	transform:scale(0.5);
 	transform-origin:2px -35px;
@@ -112,20 +104,13 @@
 	transition: all 0.3s;
 	transform-origin:2px -35px;
 }
-/*.menu.main.zoomin{
-	animation:menuzoomin 0.3s forwards;
-	-webkit-animation:menuzoomin 0.3s forwards;
-	transform:scale(0.5);
-	transform-origin:2px -35px;
-	opacity:0;
+.menu-container.hidden>.menu.main.center{
+	/*transform:translateY(300px);*/
+	transform-origin: center center;
 }
-.menu.main.zoomout{
-	animation:menuzoomout 0.3s forwards;
-	-webkit-animation:menuzoomout 0.3s forwards;
-	transform:scale(0.5);
-	transform-origin:2px -35px;
-	opacity:0;
-}*/
+.menu-container>.menu.main.center{
+	transform-origin: center center;
+}
 .menu.main{
 	width: 400px;
 	height:300px;
@@ -195,6 +180,7 @@
     height: 23px;
     font-size: 26px;
     line-height: 26px;
+	white-space: nowrap;
 }
 .menu.main>.menu-content>div>.left.pane>.menubutton.off{
 	opacity: 0.5;
@@ -224,6 +210,9 @@
 }
 .menu.main>.menu-content>div>.right.pane>.expanded{
 	padding-bottom:80px;
+}
+.menu.main>.menu-content>div>.right.pane>.expanded.expanded2{
+	padding-bottom:12px;
 }
 .menu.main>.menu-content>div>.right.pane>.morenodes{
 	padding-bottom:10px;
@@ -284,6 +273,7 @@
 	position:absolute;
 	overflow:scroll;
 	max-height: 400px;
+	transition-property: opacity;
 }
 .popup-container>.menu>div{
 	padding-top:5px;
@@ -412,14 +402,29 @@
 	width: 100%;
 }
 .menu-buttons>.new_character>.avatar{
+	background-size: cover;
+}
+.menu-buttons>.new_character>.avatar,
+.menu-buttons>.new_character>.card{
 	top:8px;
 	left:12px;
 	position: absolute;
 	width: 100px;
 	height: 120px;
+	margin: 0;
+}
+.menu-buttons>.new_character>.card{
+	height: 100px;
+}
+.menu-buttons>.new_character>.card:not(.fullskin){
+	color: white;
+	text-shadow: black 0px 0px 2px;
+	transform: translateX(0px);
+	background-image: url("image/card/hslingjian_jinjilengdong.jpg");
 	background-size: cover;
 }
-.menu-buttons>.new_character>.avatar>input{
+.menu-buttons>.new_character>.avatar>input,
+.menu-buttons>.new_character>.card>input{
 	z-index: 3;
 	border-radius: 8px;
 	opacity: 0;
@@ -429,10 +434,12 @@
 	top:0;
 	position: absolute;
 }
-#window.reduce_radius .menu-buttons>.new_character>.avatar>input{
+#window.reduce_radius .menu-buttons>.new_character>.avatar>input,
+#window.reduce_radius .menu-buttons>.new_character>.card>input{
 	border-radius: 4px;
 }
-.menu-buttons>.new_character>.avatar>.select_avatar{
+.menu-buttons>.new_character>.avatar>.select_avatar,
+.menu-buttons>.new_character>.card>.select_avatar{
 	font-family: 'xinwei';
 	font-size: 20px;
 	width: 100%;
@@ -442,7 +449,11 @@
 	left:0;
 	text-align: center;
 }
-.menu-buttons>.new_character>.avatar.inited>.select_avatar{
+.menu-buttons>.new_character>.card>.select_avatar{
+	top:40px;
+}
+.menu-buttons>.new_character>.avatar.inited>.select_avatar,
+.menu-buttons>.new_character>.card.inited>.select_avatar{
 	display: none;
 }
 .menu-buttons>.new_character>.indent{
@@ -605,8 +616,29 @@
 	margin-top: 6px;
 	overflow: hidden;
 }
+.videonode.menubutton.extension{
+	text-align: left;
+	height: auto;
+	max-height: 90px;
+}
+.videonode.menubutton.extension.active{
+	max-height: 200px;
+}
 .videonode.menubutton>div{
 	position: absolute;
+}
+.videonode.menubutton.extension>div{
+	position: relative;
+	display: block;
+}
+.videonode.menubutton.extension>.caption>.menubutton{
+	position: relative;
+	float: right;
+	font-size: 16px;
+	padding: 0;
+	text-align: center;
+	width: 80px;
+	font-family:'STHeiti','SimHei','Microsoft JhengHei','Microsoft YaHei','WenQuanYi Micro Hei',Helvetica,Arial,sans-serif;
 }
 .videonode.menubutton>.videoavatar{
 	width: 56px;
@@ -630,6 +662,11 @@
 	padding-top: 0;
 	white-space: nowrap;
 }
+.videonode.menubutton.extension>.caption{
+	left: 0;
+	top: 0;
+	margin-left: 2px;
+}
 .videonode.menubutton>.text{
 	font-size: 14px;
 	left: 85px;
@@ -637,6 +674,11 @@
 	line-height: 20px;
 	text-align: left;
 	font-family:'STHeiti','SimHei','Microsoft JhengHei','Microsoft YaHei','WenQuanYi Micro Hei',Helvetica,Arial,sans-serif
+}
+.videonode.menubutton.extension>.text{
+	left: 0;
+	top: 0;
+	margin-left: 5px;
 }
 .videonode.menubutton>.victory{
 	font-family: 'huangcao','xinwei';
@@ -664,4 +706,180 @@
 }
 .videonode.starred>.video_star{
 	opacity: 1
+}
+.button-downloading>.button-progress{
+	width: 0;
+	border-radius: 4px;
+	background: linear-gradient(rgb(29,206,68),rgb(1,148,46));
+	z-index: 1;
+}
+.button-downloading>div:not(.button-progress){
+	width: 100% !important;
+	z-index: 2;
+}
+.button-downloading>span{
+	opacity: 0;
+}
+.button-downloading>div{
+	height: 100%;
+	margin: 0 !important;
+	padding: 0 !important;
+	position: absolute !important;
+	left: 0 !important;
+	top:0;
+}
+
+.menubutton.large.dashboard{
+	width: 80px;
+	height: 80px;
+	margin: 6px;
+	position: relative !important;
+}
+.menubutton.large.dashboard>div:first-child{
+	font-family: 'lishu','xiaozhuan';
+	font-size: 60px;
+	line-height: 60px;
+	position: absolute;
+	left: 0;
+	top: 7px;
+	width: 100%;
+	height: 60px;
+}
+.menubutton.large.dashboard>div:last-child{
+	font-size: 18px;
+	position: absolute;
+	left: 0;
+	bottom: 0;
+	width: 100%;
+}
+#create-extension{
+	height: calc(100% - 5px);
+	width: calc(100% - 10px);
+	overflow: hidden;
+}
+#create-extension>div{
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	overflow: scroll;
+	left: 0;
+	top: 0;
+}
+#create-extension>.menu-buttons{
+	left:10px;
+	height: calc(100% - 5px);
+	width: calc(100% - 15px) !important;
+}
+#create-extension>.menu-buttons>.config.more{
+	margin-left: 0px !important;
+	margin-top: 10px !important;
+}
+#create-extension>.menu-buttons>.config.more.margin-bottom{
+	margin-left: 0px !important;
+	margin-top: 10px !important;
+	margin-bottom: 5px !important;
+}
+#create-extension>.hidden{
+	pointer-events: none;
+}
+#create-extension>div:not(*:first-child).hidden{
+	transform: translateX(200px);
+}
+#create-extension>.menu-buttons>.new_character>.skill_list{
+    top: 210px;
+}
+#create-extension>.menu-buttons>.new_character>.skill_list>div:first-child{
+	transition: all 0s;
+}
+#create-extension>.menu-buttons>.new_character>.skill_list>div:first-child:not(*:empty){
+	margin-top: 10px;
+	margin-bottom: 10px;
+}
+#create-extension>.menu-buttons>.new_character>.skill_list>div:first-child>button{
+	margin-right: 3px;
+	margin-bottom: 3px;
+}
+.popup-container.editor>div{
+	width: 80%;
+	height: 90%;
+	position: absolute;
+	left: 10%;
+	top: 5%;
+	border-radius: 4px;
+	box-shadow: rgba(0, 0, 0, 0.2) 0 0 0 1px, rgba(0, 0, 0, 0.45) 0 0 10px;
+	background: white;
+	overflow: hidden;
+}
+.popup-container.editor>div>.editbutton{
+	font-family: 'lishu';
+	font-size: 18px;
+	color: rgb(60,60,60);
+	text-shadow: none;
+	position: absolute;
+	left: 0;
+	padding: 7px;
+	font-size: 24px;
+}
+.popup-container.editor>div>.editbutton:first-child{
+	left: auto;
+	right: 0;
+}
+.popup-container.editor>div>div:last-child{
+	width: 100%;
+	height: calc(100% - 40px);
+	position: absolute;
+	top:40px;
+	border-radius: 0 0 4px 4px;
+	border-top: 1px solid rgba(0,0,0,0.2);
+}
+.popup-container.editor>div>div:last-child>textarea{
+	width: 100%;
+	height: 100%;
+	border:none;
+	margin:0;
+	padding: 0;
+	resize: none;
+}
+.menubutton.large.new_card,
+.menubutton.large.new_card_delete{
+	left: 12px;
+	top: 130px;
+	margin-bottom: 20px;
+}
+.menubutton.large.new_card_delete{
+	left: 155px;
+}
+.edit_pile{
+	width: 100%;
+	left: 0;
+	padding-bottom: 20px;
+}
+.edit_pile>div:last-child{
+	width: 100%;
+	position: relative;
+}
+.edit_pile>div:last-child>button{
+	margin-right: 3px;
+    margin-top: 3px;
+}
+.new_character.new_skill>div{
+	position: relative;
+	margin-top: 2px;
+	white-space: nowrap;
+	overflow: visible;
+}
+.new_character.new_skill>div>button{
+	margin-right: 3px;
+}
+.menu-buttons.new_skill>.menubutton{
+	position: relative;
+	margin:5px;
+}
+.new_character.new_skill>.menubutton.large{
+	left: 13px;
+	position: absolute;
+	top: 88px;
+}
+.new_character.new_skill>.menubutton.large.new_card_delete{
+	left: 155px;
 }

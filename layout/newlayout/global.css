@@ -6,9 +6,18 @@
 	width:130px;
 	height:160px;
 }
-#window>.player>.avatar,#arena.slim_player .player:not(.minskin):not(.fakeme) .avatar{
+#historybar{
+	height: calc(90% - 25px);
+}
+#window>.player:not(.minskin)>.avatar,#arena.slim_player .player:not(.minskin):not(.fakeme) .avatar{
 	width: 136px;
 	height: 166px;
+	left:7px;
+	top:7px;
+}
+#window>.player.minskin>.avatar{
+	width: 106px;
+	height: 106px;
 	left:7px;
 	top:7px;
 }
@@ -130,6 +139,11 @@
 	margin-top: -12px;
 	margin-bottom:-12px
 }
+.player:not(.linked2) .marks>div:first-child{
+	margin-top: -12px;
+	margin-bottom:-12px;
+	opacity:0;
+}
 
 
 .player .judges>.card.removing,
@@ -153,9 +167,13 @@
 	z-index:3;
 	transform:rotate(180deg);
 }
-#arena.slim_player .player .hp{
+#arena.slim_player .player .hp,
+#window>.player:not(.minskin) .hp{
 	bottom: 15px;
 	left:121px;
+}
+#window>.player.minskin .hp{
+	left: 91px;
 }
 .player .hp.text{
 	font-family:'huangcao','xinwei';
@@ -364,7 +382,24 @@
 #window>.player.connect[data-position='c0']{left:calc(50% - 255px);top:calc(50% - 90px)}
 #window>.player.connect[data-position='c1']{left:calc(50% - 75px);top:calc(50% - 90px)}
 #window>.player.connect[data-position='c2']{left:calc(50% + 105px);top:calc(50% - 90px)}
+#window>.player.connect[data-position='c3']{left:calc(50% - 255px);top:calc(50% - 90px)}
+#window>.player.connect[data-position='c4']{left:calc(50% - 75px);top:calc(50% - 90px)}
+#window>.player.connect[data-position='c5']{left:calc(50% + 105px);top:calc(50% - 90px)}
 
+#window:not(.more_room)>.player.connect[data-position='c3']{opacity:0 !important;pointer-events: none;visibility: hidden}
+#window:not(.more_room)>.player.connect[data-position='c4']{opacity:0 !important;pointer-events: none;visibility: hidden}
+#window:not(.more_room)>.player.connect[data-position='c5']{opacity:0 !important;pointer-events: none;visibility: hidden}
+
+#window.more_room>.player.connect[data-position='c0']{transform:translateY(-105px);}
+#window.more_room>.player.connect[data-position='c1']{transform:translateY(-105px);}
+#window.more_room>.player.connect[data-position='c2']{transform:translateY(-105px);}
+#window.more_room>.player.connect[data-position='c3']{transform:translateY(105px);}
+#window.more_room>.player.connect[data-position='c4']{transform:translateY(105px);}
+#window.more_room>.player.connect[data-position='c5']{transform:translateY(105px);}
+
+#window>.player.connect{
+	width: 150px;
+}
 .connectbutton{
 	top:calc(500% / 7 + 80px + 5px);
 }
@@ -372,7 +407,7 @@
 
 .card[data-position='0']{top:calc(100% - 130px);left:calc(50% - 52px);}
 .popup[data-position='0']{top:calc(100% - 206px);left:calc(50% - 61px);}
-#me,#mebg{top:calc(100% - 150px);}
+#me,#mebg,#autonode{top:calc(100% - 150px);}
 #handcards1,#handcards2{width: calc(50% - 95px);height: 127px;padding: 10px;}
 #handcards2{left: calc(50% + 75px);}
 .dialog{

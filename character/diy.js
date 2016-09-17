@@ -11,13 +11,16 @@ character.diy={
 		diy_caiwenji:['female','qun',3,['beige','guihan']],
 		diy_lukang:['male','wu',4,['luweiyan','qianxun']],
 		diy_xuhuang:['male','wei',4,['diyduanliang']],
-		diy_dianwei:['male','wei',4,['diyqiangxi']],
+		// diy_dianwei:['male','wei',4,['diyqiangxi']],
 		diy_huangzhong:['male','shu',4,['liegong','fuli']],
 		diy_weiyan:['male','shu',4,['diykuanggu']],
 		diy_zhenji:['female','wei',3,['jiaoxia','yiesheng']],
 		// diy_menghuo:['male','shu',4,['huoshou','zaiqix']],
 		re_huangyueying:['female','shu',3,['rejizhi','qicai']],
 		old_zhonghui:['male','wei',3,['zzhenggong','zquanji','zbaijiang']],
+	},
+	perfectPair:{
+		yuji:['zuoci']
 	},
 	skill:{
 		zaiqix:{
@@ -320,7 +323,7 @@ character.diy={
 				result:{
 					target:function(card,player,target,current){
 						if(target.hp<=1&&get.tag(card,'damage')){
-							if(player.skills.contains('jueqing')) return [1,-5];
+							if(player.hasSkill('jueqing')) return [1,-5];
 							return [1,0,0,-2];
 						}
 					}
@@ -512,7 +515,7 @@ character.diy={
 		ciqiu2:{
 			trigger:{source:'damage'},
 			filter:function(event,player){
-				return player.skills.contains('ciqiu3')&&event.player.hp<=0;
+				return player.hasSkill('ciqiu3')&&event.player.hp<=0;
 			},
 			forced:true,
 			content:function(){

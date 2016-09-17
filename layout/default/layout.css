@@ -1,5 +1,6 @@
 /*--------标签--------*/
 html{width: 100%;height: 100%;font-size: 16px;cursor: default;overflow: hidden;
+	user-select:none;
 	-ms-user-select:none;
 	-moz-user-select:none;
 	-webkit-user-select:none;
@@ -12,7 +13,11 @@ body{
 	text-rendering:optimizeLegibility;
 	font-family:'STHeiti','SimHei','Microsoft JhengHei','Microsoft YaHei','WenQuanYi Micro Hei',Helvetica,Arial,sans-serif
 }
-div{display: inline-block;position: absolute;transition: all 0.5s;}
+div{
+	display: inline-block;
+	position: absolute;
+	transition: all 0.5s;
+}
 table{table-layout: fixed;}
 
 /*--------场景--------*/
@@ -39,10 +44,44 @@ table{table-layout: fixed;}
 	position: absolute;
 	transition: all 1s;
 }
-#window.shortcutpaused>div:not(.background):not(#shortcut):not(#system):not(#arena):not(.hidden):not(.removing):not(.dialog){opacity: 0.3 !important}
-#window.shortcutpaused>#arena>div:not(#timer):not(.removing):not(.hidden){opacity: 0.3 !important}
+#window.shortcutpaused>div:not(.background):not(#shortcut):not(#system):not(#arena):not(.hidden):not(.removing):not(.dialog):not(.centermenu):not(.popup-container){opacity: 0.3 !important}
+#window.shortcutpaused>#arena>div:not(#timer):not(.removing):not(.hidden):not(#autonode){opacity: 0.3 !important}
+#window.systempaused>#system{opacity: 0.3 !important;}
 #window.noclick_important *{pointer-events: none !important;}
 #window.noclick_important .noclick_click_important div{pointer-events: auto !important}
+
+#window.blur_ui #arena.paused,
+#window.blur_ui #arena.menupaused,
+#window.blur_ui #historybar.paused,
+#window.blur_ui #historybar.menupaused,
+#window.blur_ui #arena.unfocus,
+#window.blur_ui #arena.right,
+#window.blur_ui.shortcutpaused>#arena,
+#window.blur_ui.shortcutpaused>#historybar{
+    filter:blur(3px);
+    -webkit-filter:blur(3px);
+}
+#window.blur_ui #arena.menupaused,
+#window.blur_ui #historybar.menupaused{
+    opacity: 0.6;
+}
+#window.blur_ui #arena.thrownhighlight>.card.thrown:not(.thrownhighlight){
+    filter:blur(2px);
+    -webkit-filter:blur(2px);
+}
+
+#time{
+	width: 100%;
+	padding: 0;
+	margin: 0;
+	position: absolute;
+	left: 0;
+	top: 16px;
+	text-align: center;
+	pointer-events: none;
+	display: block;
+}
+
 #shortcut{
 	width:100%;
 	height:100%;
@@ -140,7 +179,13 @@ table{table-layout: fixed;}
 	position: relative;
 	transition: all 0.8s;
 }
-#splash:not(.touch)>div:hover{
+#splash>div:first-child{
+	margin-left: 20px;
+}
+#splash>div:last-child{
+	margin-right: 20px;
+}
+#splash:not(.touch)>div:hover:not(.clicked){
 	transform: translateY(-20px);
 }
 #splash>div.clicked{
@@ -175,6 +220,9 @@ table{table-layout: fixed;}
 #arena[data-global_font='xiaozhuan']{
 	font-family: 'xiaozhuan';
 }
+#arena[data-global_font='lishu']{
+	font-family: 'lishu';
+}
 #arena[data-global_font='xinwei']{
 	font-family: 'xinwei';
 }
@@ -182,13 +230,23 @@ table{table-layout: fixed;}
 	font-family: 'huangcao','xinwei';
 }
 #arena[data-global_font='xiaozhuan'] #control,
+#arena[data-global_font='lishu'] #control,
 #arena[data-global_font='xinwei'] #control,
 #arena[data-global_font='huangcao'] #control{
 	font-family:'STHeiti','SimHei','Microsoft JhengHei','Microsoft YaHei','WenQuanYi Micro Hei',Helvetica,Arial,sans-serif
 }
 
+#arena.playerhidden>.player,
+#arena.playerhidden>#mebg,
+#arena.markhidden>.player>.marks{
+	visibility: hidden;
+	opacity: 0;
+}
 #arena.chess>#arenalog{
 	display: none !important;
+}
+#arena.observe .handcards>.card>div{
+	opacity: 0 !important;
 }
 #arenalog{
 	width: calc(50% - 210px);
@@ -222,6 +280,10 @@ table{table-layout: fixed;}
 	display: block;
 	width: calc(100% - 20px);
 	left:20px;
+	line-height: 18px;
+}
+#arena:not(.low_performance) #arenalog>div{
+	-webkit-animation: game_start 0.5s;
 }
 /*#arena[data-font_size='14']{
 	font-size:14px;
@@ -235,11 +297,13 @@ table{table-layout: fixed;}
 #arena[data-font_size='20']{
 	font-size:20px;
 }*/
-#arena{width:90%;height: 90%;top: calc(5% + 10px);left: 5%;}
+#arena{width:94%;height: 90%;top: calc(5% + 10px);left: 3%;}
 #arena.right:not(.noleft){left:240px;opacity: 0.6;}
 #arena.left:not(.noleft){left:calc(10% - 240px);opacity: 0.6;}
+#window.leftbar #arena:not(.chess){left: calc(3% + 50px);width: calc(94% - 50px);}
+#window.rightbar #arena:not(.chess){width: calc(94% - 50px);}
 #arena.top{top:-100%;}
-#arena.paused,#arena.unfocus{opacity:  0.3 !important;}
+#arena.paused,#arena.unfocus,#historybar.paused{opacity:  0.3 !important;}
 #arena.paused2{opacity:  0.1 !important;}
 #arena>.poplayer,
 #window>.poplayer{
@@ -259,11 +323,103 @@ table{table-layout: fixed;}
 	pointer-events: none;
 	position: absolute;
 }
-#arena.playerfocus>div:not(#timer):not(.playerfocus):not(#chess-container):not(.removing){
+#arena.playerfocus>div:not(#timer):not(.playerfocus):not(#chess-container):not(.removing):not(#autonode){
 	opacity: 0.3 !important;
 }
 #arena.playerfocus #chess>div:not(.playerfocus):not(.removing){
 	opacity: 0.3 !important;
+}
+#historybar{
+	left: 1.5%;
+	width: 50px;
+	height: calc(90% - 20px);
+	top: calc(5% + 25px);
+	border-radius: 4px;
+	visibility: hidden;
+	opacity: 0;
+	overflow: scroll;
+	z-index: 2;
+	transition-property: opacity,visibility;
+}
+#historybar.hidden{
+	pointer-events: none;
+}
+#historybar>div{
+	width: 42px;
+	height: 42px;
+	margin: 0;
+	padding: 4px;
+	display: block;
+	position: relative;
+}
+#historybar>div:not(.nozoom){
+	animation: history_start 0.5s;
+	-webkit-animation: history_start 0.5s;
+}
+#historybar>div>.card{
+	transform: scale(0.403846);
+	transform-origin: top left;
+	margin: 0;
+	left: 4px;
+	top: 4px;
+	position: absolute;
+}
+#historybar>div>.avatar{
+	padding: 0;
+    margin: 0;
+    position: absolute;
+	left: 4px;
+	top: 4px;
+	width: 42px;
+	height: 42px;
+	border-radius: 3.230768px;
+}
+#historybar>div>.avatar>div{
+	position: absolute;
+    margin: 0;
+    padding: 0;
+    left: 0;
+    bottom: 2px;
+    height: auto;
+    font-family: 'xinwei';
+    font-size: 18px;
+    text-align: center;
+    width: 100%;
+}
+#historybar>div>.avatar>.avatarbg{
+	bottom: 0;
+	height: 100%;
+	background-size: cover;
+}
+#historybar>div>.avatar2{
+	width: 20px;
+    height: 20px;
+    left: 28px;
+    top: 28px;
+    border-radius: 100%;
+	font-family: 'xinwei';
+	font-size: 20px;
+	line-height: 20px;
+	z-index: 1;
+}
+#window.rightbar #historybar,
+#window.rightbar2:not(.leftbar) #historybar{
+	left: calc(98.5% - 50px);
+}
+#window.leftbar #historybar,
+#window.rightbar #historybar{
+	opacity: 1;
+	visibility: visible;
+}
+.dialog .button.character.cardbg>.avatar_name{
+	font-family: 'xinwei';
+	font-size: 20px;
+	width: 100%;
+	height: 20px;
+	line-height: 20px;
+	top:44px;
+	left:0;
+	text-align: center;
 }
 .player:not(.treasure).playerfocus{
 	transform: scale(1.1);
@@ -271,8 +427,14 @@ table{table-layout: fixed;}
 .player.linked:not(.treasure).playerfocus{
 	transform: scale(1.1) rotate(-90deg);
 }
-.player.connect>div:not(.avatar):not(.name):not(.nameol){
+.player.connect>div:not(.avatar):not(.name):not(.nameol):not(.hp.room):not(.gaming){
 	display: none !important;
+}
+.player.connect>.gaming{
+	left:16px;
+	top:auto;
+	bottom: 16px;
+	font-family: 'xinwei'
 }
 
 #arena #me>div>div>.card{
@@ -291,6 +453,7 @@ table{table-layout: fixed;}
 	border-radius:100%;*/
 	z-index: 7;
 	transition-property: opacity;
+	overflow: hidden;
 }
 #roundmenu>div{
 	width: 26px;
@@ -301,25 +464,153 @@ table{table-layout: fixed;}
 	border-radius: 2px;
 	box-shadow: black 0 0 2px;
 }
-#roundmenu>div:nth-of-type(even){
+#roundmenu.clock>div:nth-of-type(1){
+	width: 2px;
+	height: 2px;
+	left: 24px;
+    top: 2px;
+	opacity: 1;
+}
+#roundmenu.clock>div:nth-of-type(2){
+	width: 2px;
+	height: 2px;
+	left: 24px;
+    top: 46px;
+	opacity: 1;
+}
+#roundmenu.clock>div:nth-of-type(3){
+	width: 2px;
+	height: 2px;
+	top: 24px;
+    left: 2px;
+	opacity: 1;
+}
+#roundmenu.clock>div:nth-of-type(4){
+	width: 2px;
+	height: 2px;
+	top: 24px;
+    left: 46px;
+	opacity: 1;
+}
+#roundmenu.clock>div:nth-of-type(5){
+	width: 2px;
+	height: 2px;
+	left: 24px;
+    top: 2px;
+	opacity: 0.4;
+	transform: rotate(30deg);
+	transform-origin: 1px 23px;
+}
+#roundmenu.clock>div:nth-of-type(9){
+	width: 2px;
+	height: 2px;
+	left: 24px;
+    top: 2px;
+	opacity: 0.4;
+	transform: rotate(60deg);
+	transform-origin: 1px 23px;
+}
+#roundmenu.clock>div:nth-of-type(6){
+	width: 2px;
+	height: 2px;
+	left: 24px;
+    top: 46px;
+	opacity: 0.4;
+	transform: rotate(30deg);
+	transform-origin: 1px -23px;
+}
+#roundmenu.clock>div:nth-of-type(10){
+	width: 2px;
+	height: 2px;
+	left: 24px;
+    top: 46px;
+	opacity: 0.4;
+	transform: rotate(60deg);
+	transform-origin: 1px -23px;
+}
+#roundmenu.clock>div:nth-of-type(7){
+	width: 2px;
+	height: 2px;
+	top: 24px;
+    left: 2px;
+	opacity: 0.4;
+	transform: rotate(30deg);
+	transform-origin: 23px 1px;
+}
+#roundmenu.clock>div:nth-of-type(11){
+	width: 2px;
+	height: 2px;
+	top: 24px;
+    left: 2px;
+	opacity: 0.4;
+	transform: rotate(60deg);
+	transform-origin: 23px 1px;
+}
+#roundmenu.clock>div:nth-of-type(8){
+	width: 2px;
+	height: 2px;
+	top: 24px;
+    left: 46px;
+	opacity: 0.4;
+	transform: rotate(30deg);
+	transform-origin: -23px 1px;
+}
+#roundmenu.clock>div:nth-of-type(12){
+	width: 2px;
+	height: 2px;
+	top: 24px;
+    left: 46px;
+	opacity: 0.4;
+	transform: rotate(60deg);
+	transform-origin: -23px 1px;
+}
+#roundmenu.clock>div:nth-of-type(13){
+	width: 22px;
+	height: 2px;
+	top: 24px;
+    left: 24px;
+	transform-origin: 1px 1px;
+	border-radius: 4px 40px 40px 4px/4px 4px 4px 4px;
+}
+#roundmenu.clock>div:nth-of-type(14){
+	width: 16px;
+	height: 4px;
+	top: 23px;
+    left: 23px;
+	transform-origin: 2px 2px;
+	border-radius: 4px 23px 23px 4px/4px 4px 4px 4px;
+}
+
+#roundmenu:not(.clock)>div:nth-of-type(even){
 	width: 20px;
 	left:18px;
 }
-#roundmenu>div:nth-of-type(odd){
+#roundmenu:not(.clock)>div:nth-of-type(odd){
 	width: 4px;
 }
 
-#roundmenu>div:nth-of-type(1),
-#roundmenu>div:nth-of-type(2){
+#roundmenu:not(.clock)>div:nth-of-type(1),
+#roundmenu:not(.clock)>div:nth-of-type(2){
 	top:14px;
 }
-#roundmenu>div:nth-of-type(3),
-#roundmenu>div:nth-of-type(4){
+#roundmenu:not(.clock)>div:nth-of-type(3),
+#roundmenu:not(.clock)>div:nth-of-type(4){
 	top:23px;
 }
-#roundmenu>div:nth-of-type(5),
-#roundmenu>div:nth-of-type(6){
+#roundmenu:not(.clock)>div:nth-of-type(5),
+#roundmenu:not(.clock)>div:nth-of-type(6){
 	top:32px;
+	transform: none !important;
+}
+#roundmenu:not(.clock)>div:nth-of-type(7),
+#roundmenu:not(.clock)>div:nth-of-type(8),
+#roundmenu:not(.clock)>div:nth-of-type(9),
+#roundmenu:not(.clock)>div:nth-of-type(10),
+#roundmenu:not(.clock)>div:nth-of-type(11),
+#roundmenu:not(.clock)>div:nth-of-type(12),
+#roundmenu:not(.clock)>div:nth-of-type(13),
+#roundmenu:not(.clock)>div:nth-of-type(14){
+	opacity: 0;
 }
 
 .linexy{
@@ -332,6 +623,11 @@ table{table-layout: fixed;}
 }
 #me,#mebg{width: 100%;height: 140px;top:calc(100% - 140px);left:0;}
 #mebg{z-index:-1}
+#autonode{z-index: 10;width: 100%;height: 140px;top:calc(100% - 140px);left:0;display: table;text-align: center;font-size: 60px;font-family: 'xinwei';text-shadow: black 0 0 10px}
+#arena:not(.chess):not(.mobile)>#autonode{display: none}
+#arena:not(.auto)>#autonode{opacity: 0;pointer-events: none}
+#arena.auto #handcards1,#arena.auto #handcards2{opacity: 0.5}
+#autonode>div{display: table-cell;vertical-align: middle;position: relative}
 #handcards1,#handcards2{
 	width: calc(50% - 140px);height: 127px;padding: 10px;
 	text-align: left;
@@ -377,6 +673,40 @@ table{table-layout: fixed;}
 	display: block;
 	position: relative;
 }
+.dialog.character>.content-container{
+	width: calc(100% - 136px);
+	left: 136px;
+}
+.dialog.character>.packnode{
+	width: 136px;
+	left: 0;
+	height: 100%;
+	position: absolute;
+	overflow: scroll;
+}
+.dialog.character>.packnode>div{
+	/*box-shadow: rgba(0, 0, 0, 0.4) 0 0 0 1px, rgba(0, 0, 0, 0.2) 0 3px 10px;
+	background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4));
+	border-radius: 4px;
+	font-family:'STXinwei','xinwei';
+
+	text-align:center;
+	display:inline-block;
+	padding:5px;*/
+
+	font-size:26px;
+	line-height:26px;
+
+	width: calc(100% - 30px);
+	margin-top: 9px;
+	margin-left: 10px;
+
+	white-space: nowrap;
+	position: relative;
+}
+.dialog.character>.packnode>div:last-child{
+	margin-bottom: 9px;
+}
 #sidebar>div,#sidebar3>div{margin: 10px;position: relative;display: block;min-height: 5px;}
 #scrollzone1{left: 0;}
 #scrollzone2{left: calc(50% - 140px);}
@@ -388,13 +718,21 @@ body>.background.paused{
 	-webkit-filter:blur(3px);
 }
 body>.background{z-index:-5}
+body>.background.upper{z-index:-4}
 .popup{padding: 5px;}
+.forcehide{display: none !important;}
 .removing,.hidden{opacity: 0 !important;}
 #system>div>div.hidden{opacity:0.5 !important;}
 .transparent{opacity:  0.3 !important;}
+.transparent2{opacity:  0.6 !important;}
 .out{opacity: 0.3 !important;
 	filter:blur(3px);
 	-webkit-filter:blur(3px)
+}
+.blurbg{
+	filter:blur(3px) !important;
+	-webkit-filter:blur(3px) !important;
+	transform: scale(1.2);
 }
 .blur{
 	filter:blur(3px) !important;
@@ -403,6 +741,9 @@ body>.background{z-index:-5}
 .blur2{
 	filter:blur(6px) !important;
 	-webkit-filter:blur(6px) !important;
+}
+.invert-color{
+	-webkit-filter:invert(1);
 }
 .zoominanim{-webkit-animation:zoomin 0.5s;}
 .zoomin{transform: scale(1.05) !important;}
@@ -443,6 +784,14 @@ div:not(.handcards)>.card>.info,
 .handcards>.card:last-child>.info,
 div:not(.handcards)>.card>.name,
 .handcards>.card:last-child>.name{transform: none !important}
+div:not(.handcards).menu-buttons>.button.card>.name{
+	transform: scale(0.9) !important;
+	transform-origin: top left;
+}
+div:not(.handcards).menu-buttons>.button.card>.info{
+	transform: scale(0.9) !important;
+	transform-origin: top right;
+}
 div:not(.handcards)>.card>.info>span,
 .handcards>.card:last-child>.info>span{display: inline !important}
 .card>.image{
@@ -509,6 +858,8 @@ div:not(.handcards)>.card>.info>span,
 #arena.low_performance .player .equips,
 #arena.low_performance .player .name{transition: all 0s}
 .judges>.card>.background,.marks>.card>.background{font-size: 20px;height: 20px;padding-top: 3px;}
+.judges>.card.fakejudge.fullskin>.image{display: none !important}
+.judges>.card.fakejudge.fullskin>.background{display: block !important;font-family: 'huangcao' !important;padding-top: 4px !important;}
 .button.card>.background{font-size: 68px;height: 68px;padding-top: 12px;}
 .card>.background{font-family:'xiaozhuan'}
 .card>.background.tight{letter-spacing: -0.2em}
@@ -530,8 +881,14 @@ div:not(.handcards)>.card>.info>span,
 	z-index: 1;
 	display: block !important;
 }
+#arena.oldlayout .player:not(.linked2) .marks>div:first-child,
+#arena.oldlayout .player .marks .removing{
+	margin-left: -12px;
+	margin-right:-12px;
+	opacity:0;
+}
 /*--------窗口--------*/
-.dialog{text-align: center;z-index:4;transition-property:opacity,background,box-shadow}
+.dialog{text-align: center;z-index:4;transition-property:opacity,background,box-shadow;}
 .dialog{width: calc(90% - 420px);height: calc(100% / 3 - 160px / 3 + 120px);}
 .dialog.fullheight{height:calc(100% - 80px) !important;top:40px !important}
 .dialog.fullwidth{left:calc(5% + 60px) !important;width:calc(90% - 120px) !important}
@@ -615,6 +972,7 @@ margin-bottom: 5px;
 .caption>.text.textlink:hover{text-decoration: underline;}
 .caption>div>div{font-size: 16px;position: relative;width: calc(100% - 70px);vertical-align: top;margin: 0;padding: 0;}
 .skill{left: 0 !important;width: 70px !important;}
+.skill>.card{transform: scale(0.56);transform-origin: top left;margin-left: 2px;margin-top: 6px;margin-bottom: -52px}
 .caption>.ctext{text-align:center;font-size:16px;}
 .button.character,.button.card{width: 90px;height: 90px;position: relative;margin: 6px;}
 .button.card{font-size: 14px;}
@@ -675,7 +1033,7 @@ margin-bottom: 5px;
 	-webkit-animation:replaceenemy 0.5s
 }
 .player>div{z-index: 2;}
-.player.dead,.player.likedead{z-index: 1;
+.player.dead,.player.likedead,.grayscale1{z-index: 1;
 	filter:grayscale(1);
 	-webkit-filter:grayscale(1);
 }
@@ -683,6 +1041,10 @@ margin-bottom: 5px;
 #arena[data-name_font='xiaozhuan'] .player>.name,
 #arena[data-name_font='xiaozhuan'] .button.character>.name{
 	font-family: 'xiaozhuan';
+}
+#arena[data-name_font='lishu'] .player>.name,
+#arena[data-name_font='lishu'] .button.character>.name{
+	font-family: 'lishu';
 }
 #arena[data-name_font='xinwei'] .player>.name,
 #arena[data-name_font='xinwei'] .button.character>.name{
@@ -845,6 +1207,10 @@ margin-bottom: 5px;
 	background: rgba(63, 119, 173,1);
 	border: 1px solid rgba(31, 82, 131, 1);
 }
+.treasure>.hp>div:not(.lost){
+	background: rgba(63, 119, 173,1) !important;
+	border: 1px solid rgba(31, 82, 131, 1) !important;
+}
 .hp.actcount>div.overflow:not(.lost){
 	background: rgb(154, 154, 154);
 	border: 1px solid rgb(109, 109, 109);
@@ -999,23 +1365,36 @@ margin-bottom: 5px;
 .card[data-position='0']{top:calc(100% - 130px);left:calc(50% - 52px);}
 .popup[data-position='0']{top:calc(100% - 176px);left:calc(50% - 106px);}
 
-#window>.player.connect[data-position='0']{left:calc(25% - 180px);top:calc(300% / 7 - 155px);}
-#window>.player.connect[data-position='1']{left:calc(50% - 120px);top:calc(300% / 7 - 155px);}
-#window>.player.connect[data-position='2']{left:calc(75% - 60px);top:calc(300% / 7 - 155px);}
-#window>.player.connect[data-position='3']{left:calc(25% - 180px);top:calc(400% / 7 - 75px);}
-#window>.player.connect[data-position='4']{left:calc(75% - 60px);top:calc(400% / 7 - 75px);}
-#window>.player.connect[data-position='5']{left:calc(25% - 180px);top:calc(500% / 7 + 5px);}
-#window>.player.connect[data-position='6']{left:calc(50% - 120px);top:calc(500% / 7 + 5px);}
-#window>.player.connect[data-position='7']{left:calc(75% - 60px);top:calc(500% / 7 + 5px);}
+
+
+
+#window>.player.connect[data-position='0']{left:calc(25% - 120px);top:calc(300% / 7 - 155px);}
+#window>.player.connect[data-position='1']{left:calc(50% - 60px);top:calc(300% / 7 - 155px);}
+#window>.player.connect[data-position='2']{left:calc(75% - 0px);top:calc(300% / 7 - 155px);}
+#window>.player.connect[data-position='3']{left:calc(25% - 120px);top:calc(400% / 7 - 75px);}
+#window>.player.connect[data-position='4']{left:calc(75% - 0px);top:calc(400% / 7 - 75px);}
+#window>.player.connect[data-position='5']{left:calc(25% - 120px);top:calc(500% / 7 + 5px);}
+#window>.player.connect[data-position='6']{left:calc(50% - 60px);top:calc(500% / 7 + 5px);}
+#window>.player.connect[data-position='7']{left:calc(75% - 0px);top:calc(500% / 7 + 5px);}
 
 #window>.player.connect[data-position='c0']{left:calc(50% - 120px);top:calc(50% - 200px)}
 #window>.player.connect[data-position='c1']{left:calc(50% - 120px);top:calc(50% - 60px)}
 #window>.player.connect[data-position='c2']{left:calc(50% - 120px);top:calc(50% + 80px)}
 
+#window>.player.connect[data-position='c0']{left:calc(50% - 140px);top:calc(50% - 200px)}
+#window>.player.connect[data-position='c1']{left:calc(50% - 140px);top:calc(50% - 60px)}
+#window>.player.connect[data-position='c2']{left:calc(50% - 140px);top:calc(50% + 80px)}
+#window>.player.connect[data-position='c3']{left:calc(50% + 20px);top:calc(50% - 200px)}
+#window>.player.connect[data-position='c4']{left:calc(50% + 20px);top:calc(50% - 60px)}
+#window>.player.connect[data-position='c5']{left:calc(50% + 20px);top:calc(50% + 80px)}
+
+#window>.player.connect{
+	width: 120px;
+}
 .connectbutton{
 	top:calc(400% / 7 - 35px);
 	width:130px;
-	left:calc(50% - 65px);
+	left:calc(50% - 70px);
 }
 
 
@@ -1041,7 +1420,7 @@ margin-bottom: 5px;
 }
 .card.thrown{position: absolute;opacity: 1;margin:0;z-index: 3;}
 #arena>.card.thrown{pointer-events: none}
-#arena.thrownhighlight>.card.thrown:not(.thrownhighlight){
+#arena.thrownhighlight>.card.thrown:not(.thrownhighlight):not(.drawingcard){
 	opacity: 0.5;
 	transform:scale(0.95);
 	/*-webkit-filter:blur(3px);*/
@@ -1178,6 +1557,7 @@ div:hover>.intro{opacity: 1;}
 /*.player.target{-webkit-filter:brightness(1.2)}*/
 
 .target{box-shadow: rgba(0, 0, 0, 0.2) 0 0 0 1px,rgba(255, 0, 0, 0.4) 0 0 5px, rgba(255, 0, 0, 0.5) 0 0 12px, rgba(255, 0, 0, 0.8) 0 0 15px !important}
+#mebg.target{transform: none !important;}
 #arena[data-target_shake='shake'] .target{transform: rotate(-3deg);}
 #arena[data-target_shake='shake'] .target2{transform: rotate(3deg);}
 
@@ -1250,6 +1630,9 @@ div:hover>.intro{opacity: 1;}
 #arena[data-identity_font='xiaozhuan'] .player .identity>div{
 	font-family: 'xiaozhuan';
 }
+#arena[data-identity_font='lishu'] .player .identity>div{
+	font-family: 'lishu';
+}
 #arena[data-identity_font='xinwei'] .player .identity>div{
 	font-family: 'xinwei';
 }
@@ -1260,6 +1643,9 @@ div:hover>.intro{opacity: 1;}
 
 #arena[data-cardtext_font='xiaozhuan'] .card div:not(.info):not(.background){
 	font-family: 'xiaozhuan';
+}
+#arena[data-cardtext_font='lishu'] .card div:not(.info):not(.background){
+	font-family: 'lishu';
 }
 #arena[data-cardtext_font='xinwei'] .card div:not(.info):not(.background){
 	font-family: 'xinwei';
@@ -1280,6 +1666,8 @@ div:hover>.intro{opacity: 1;}
 	-webkit-animation:identity 0.8s;
 }
 .player .identity[data-color="zhu"],
+.player .identity[data-color="truezhu"],
+.player .identity[data-color="enemy"],
 div[data-nature='fire'],
 span[data-nature='fire']{
 	text-shadow: black 0 0 1px,rgba(232, 53, 53,1) 0 0 2px,rgba(232, 53, 53,1) 0 0 5px,rgba(232, 53, 53,1) 0 0 10px,
@@ -1291,12 +1679,17 @@ span[data-nature='firem']{
 		rgba(232, 53, 53,1) 0 0 5px,black 0 0 1px;
 }
 .player .identity[data-color="zhong"],
-.player .identity[data-color="mingzhong"],
 .player .identity[data-color="qun"],
+.player .identity[data-color="neutral"],
+.player .identity[data-color="friend2"],
 div[data-nature='metal'],
 span[data-nature='metal']{
 	text-shadow: black 0 0 1px,rgba(255, 203, 0,1) 0 0 2px,rgba(255, 203, 0,1) 0 0 5px,rgba(255, 203, 0,1) 0 0 10px,
 		rgba(255, 203, 0,1) 0 0 10px
+}
+.player .identity[data-color="mingzhong"]{
+	text-shadow: black 0 0 1px,rgba(255, 120, 0,1) 0 0 2px,rgba(255, 120, 0,1) 0 0 5px,rgba(255, 120, 0,1) 0 0 10px,
+		rgba(255, 120, 0,1) 0 0 10px
 }
 div[data-nature='metalm'],
 span[data-nature='metalm']{
@@ -1339,6 +1732,9 @@ span[data-nature='woodmm']{
 }
 .player .identity[data-color="cai"],
 .player .identity[data-color="wei"],
+.player .identity[data-color="falsezhu"],
+.player .identity[data-color="friend"],
+.water,
 div[data-nature='water'],
 span[data-nature='water']{
 	text-shadow: rgba(78, 117, 140,1) 0 0 2px,rgba(78, 117, 140,1) 0 0 5px,rgba(78, 117, 140,1) 0 0 10px,
@@ -1402,6 +1798,13 @@ span[data-color="unknownm"]{
     text-align:center;
 	line-height: 18px;
 }
+.cardbg,.button.character.cardbg{
+	color:rgb(74, 29, 1);
+	text-shadow: none;
+}
+.card.fullskin>.name.long{
+	top:5px;
+}
 .card.fullskin.thunder>.name{
 	color:#152E63;
 	border:1px solid #152E63;
@@ -1409,6 +1812,29 @@ span[data-color="unknownm"]{
 .card.fullskin.fire>.name{
 	color:#631515;
 	border:1px solid #631515;
+}
+.card.fullskin.poison>.name{
+	color:#00312d;
+	border:1px solid #00312d;
+}
+.card.fullskin.epic>.name{
+	color: white;
+    background: rgba(0, 66, 165, 0.6);
+    border: 1px solid rgba(0, 66, 165, 1);
+    box-shadow: rgba(0,0,0,0.4) 0 0 10px inset;
+}
+.card.fullskin.epic>.name2{
+	color: rgb(117,186,255);
+}
+.card.fullskin.legend>.name{
+	color: white;
+    background: rgba(106, 27, 154, 0.6);
+    border: 1px solid rgba(106, 27, 154, 1);
+    box-shadow: rgba(0,0,0,0.4) 0 0 10px inset;
+}
+.card.fullskin.legend>.name2{
+	color: rgb(233, 131, 255);
+	/*color: rgb(117,186,0);*/
 }
 /*.card.fullskin.fire>.image{
 	-webkit-filter:saturate(2);
@@ -1439,6 +1865,9 @@ span[data-color="unknownm"]{
 .config>.toggle.onoff:not(.on)>div,
 .config.disabled{
 	opacity:0.4;
+}
+.menubutton.large.disabled{
+	opacity: 0.5;
 }
 .config>.toggle.onoff>div>div{
 	width:8px;
@@ -1540,11 +1969,17 @@ span[data-color="unknownm"]{
 .controlthundertext{
 	color: rgb(117,186,255);
 }
+.whitetext .thundertext{
+	color: white;
+}
 .poisontext{
 	color: rgb(104,221,127);
 }
 .browntext{
 	color: rgb(195,161,223);
+}
+.legendtext{
+	color: rgb(233, 131, 255);
 }
 #window>canvas.fun{
 	position: absolute;
@@ -1676,6 +2111,9 @@ div:hover>.wunature{
 	/*-webkit-animation:control_glow 4s infinite;*/
 	box-shadow: rgba(0, 0, 0, 0.3) 0 0 0 1px, rgba(10, 155, 67, 1) 0 0 15px, rgba(10, 155, 67, 1) 0 0 15px !important;
 }
+.glow3{
+	box-shadow: rgba(0, 0, 0, 0.4) 0 0 0 1px, rgba(0, 133, 255, 0.8) 0 0 10px, rgba(0, 133, 255, 0) 0 0 40px, rgba(0, 133, 255, 0.8) 0 0 60px !important
+}
 .player:not(.glow_phase)>.avatar.glow2,
 .button.glow2:not(.selected){
 	box-shadow: rgba(0, 0, 0, 0.3) 0 0 0 1px, rgba(10, 155, 67, 1) 0 0 5px, rgba(10, 155, 67, 1) 0 0 5px, rgba(10, 155, 67, 1) 0 0 10px, rgba(10, 155, 67, 1) 0 0 10px !important
@@ -1783,6 +2221,8 @@ div:hover>.wunature{
 @-webkit-keyframes drawing2{0% {opacity: 0}50%{opacity: 1}100%{opacity: 0}}
 @keyframes card_start{from {opacity: 0;transform:scale(0);}}
 @-webkit-keyframes card_start{from {opacity: 0;transform:scale(0);}}
+@keyframes history_start{from {opacity: 0;margin-bottom: -50px}}
+@-webkit-keyframes history_start{from {opacity: 0;margin-bottom: -50px}}
 @keyframes card_start2{from {opacity: 0;transform:scale(0);margin-left: -52px;margin-right: -52px;}}
 @-webkit-keyframes card_start2{from {opacity: 0;transform:scale(0);margin-left: -52px;margin-right: -52px;}}
 @keyframes card_judgestart{from {opacity: 0;transform:scale(0) rotateY(-180deg) perspective(600px);}}
@@ -1807,13 +2247,3 @@ div:hover>.wunature{
 @-webkit-keyframes flip{from{transform:perspective(1000px) rotateY(0);}to{transform:perspective(1000px) rotateY(360deg);}}
 /*--------其它--------*/
 ::-webkit-scrollbar{display: none;}
-@media screen and (min-height: 800px) and (orientation:landscape)  {
-	#arena{height: 720px;top: calc(50% - 350px);}
-}
-@media screen and (min-width: 1280px) {
-	#arena{width: 1152px;left: calc(50% - 576px);}
-}
-@media screen and (min-width: 1600px) {
-	#arena.right:not(.noleft){left: calc(50% - 576px);}
-	#arena.left:not(.noleft){left: calc(50% - 576px);}
-}

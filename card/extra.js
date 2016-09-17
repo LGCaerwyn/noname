@@ -1,38 +1,44 @@
 card.extra={
+	connect:true,
 	card:{
 		jiu:{
 			audio:true,
 			fullskin:true,
 			type:"basic",
 			enable:true,
+			lianheng:true,
+			logv:false,
 			savable:function(card,player,dying){
 				return dying==player;
 			},
 			usable:1,
 			selectTarget:-1,
+			modTarget:true,
 			filterTarget:function(card,player,target){
 				return target==player;
 			},
 			content:function(){
-				if(target==_status.dying){
+				if(target==_status.event.getParent(2).dying){
 					target.recover();
 					if(_status.currentPhase==target){
 						target.getStat().card.jiu--;
 					}
 				}
 				else{
-					game.broadcastAll(function(target,card){
+					game.broadcastAll(function(target,card,gain2){
 						target.addSkill('jiu');
 						if(!target.node.jiu&&lib.config.jiu_effect){
 							target.node.jiu=ui.create.div('.playerjiu',target.node.avatar);
 							target.node.jiu2=ui.create.div('.playerjiu',target.node.avatar2);
 						}
-						if(card.clone&&card.clone.parentNode==target.parentNode){
+						if(gain2&&card.clone&&(card.clone.parentNode==target.parentNode||card.clone.parentNode==ui.arena)){
 							card.clone.moveDelete(target);
 						}
-					},target,card);
-					if(card.clone&&card.clone.parentNode==target.parentNode){
-						game.addVideo('gain2',target,get.cardsInfo([card]));
+					},target,card,target==targets[0]);
+					if(target==targets[0]){
+						if(card.clone&&(card.clone.parentNode==target.parentNode||card.clone.parentNode==ui.arena)){
+							game.addVideo('gain2',target,get.cardsInfo([card]));
+						}
 					}
 				}
 			},
@@ -62,16 +68,16 @@ card.extra={
 					target:function(player,target){
 						if(target&&target.hp<=0) return 2;
 						if(lib.config.mode=='stone'&&!player.isMin()){
-							if(player.getActCount()+1>=player.actcount) return false;
+							if(player.getActCount()+1>=player.actcount) return 0;
 						}
 						var shas=player.get('h','sha');
 						if(shas.length>1){
 							if(player.num('e','zhuge')) return 0;
-							if(player.skills.contains('paoxiao')) return 0;
-							if(player.skills.contains('fengnu')) return 0;
+							if(player.hasSkill('paoxiao')) return 0;
+							if(player.hasSkill('fengnu')) return 0;
 							if(!player.getStat().card.sha){
-								if(player.skills.contains('tanlnin3')) return 0;
-								if(player.skills.contains('zhaxiang2')) return 0;
+								if(player.hasSkill('tanlin3')) return 0;
+								if(player.hasSkill('zhaxiang2')) return 0;
 							}
 						}
 						var card;
@@ -172,7 +178,7 @@ card.extra={
 						return 0;
 					},
 					target:function(player,target){
-						if(target.skills.contains('huogong2')||target.num('h')==0) return 0;
+						if(target.hasSkill('huogong2')||target.num('h')==0) return 0;
 						if(player.num('h')<=1) return 0;
 						if(target==player){
 							if(typeof _status.event.filterCard=='function'&&
@@ -218,9 +224,9 @@ card.extra={
 				},
 				result:{
 					target:function(player,target){
-						if(target.classList.contains('linked')) return 1;
+						if(target.isLinked()) return 1;
 						if(ai.get.attitude(player,target)>=0) return -1;
-						if(player.isMin()) return -1;
+						// if(player.isMin()) return -1;
 						if(ui.selected.targets.length) return -1;
 						for(var i=0;i<game.players.length;i++){
 							if(ai.get.attitude(player,game.players[i])<=-1&&
@@ -308,6 +314,7 @@ card.extra={
 				basic:{
 					equipValue:function(card,player){
 						if(player.hasSkillTag('maixie')&&player.hp>1) return 0;
+						if(player.hasSkillTag('noDirectDamage')) return 10;
 						if(ai.get.damageEffect(player,player,player,'fire')>=0) return 10;
 						var num=3;
 						for(var i=0;i<game.players.length;i++){
@@ -360,6 +367,7 @@ card.extra={
 			content:function(){
 				trigger.num++;
 			},
+			temp:true,
 			group:'jiu2'
 		},
 		jiu2:{
@@ -450,7 +458,7 @@ card.extra={
 				effect:{
 					target:function(card,player,target,current){
 						if(card.name=='sha'){
-							if(card.nature=='fire'||player.skills.contains('zhuque_skill')) return 2;
+							if(card.nature=='fire'||player.hasSkill('zhuque_skill')) return 2;
 						}
 						if(get.tag(card,'fireDamage')&&current<0) return 2;
 					}
@@ -503,15 +511,13 @@ card.extra={
 	},
 	translate:{
 		jiu:'酒',
-		jiu_info:'出牌阶段，对自己使用，令自己的下一张使用的【杀】造成的伤害+1（每回合限使用1次）； 任何时候，当自己进入濒死阶段时，对自己使用，立即回复1点体力值',
+		jiu_info:'出牌阶段，对自己使用，令自己的下一张使用的【杀】造成的伤害+1（每回合限使用1次）；濒死阶段，对自己使用，回复1点体力',
 		huogong:'火攻',
 		tiesuo:'铁锁连环',
+		tiesuo_info:'出牌阶段使用，选择1至2个角色，分别横置或重置这些角色',
 		huogong_bg:'攻',
 		huogong_info:'目标角色展示一张手牌，然后若你能弃掉一张与所展示牌相同花色的手牌，则火攻对该角色造成1点火焰伤害。',
 		tiesuo_bg:'锁',
-		_chongzhu:'重铸',
-		_lianhuan:'连环',
-		_lianhuan2:'连环',
 		bingliang:'兵粮寸断',
 		hualiu:'骅骝',
 		zhuque:'朱雀羽扇',

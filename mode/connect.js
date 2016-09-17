@@ -1,8 +1,25 @@
 'use strict';
 mode.connect={
     start:function(){
+        var directstartmode=lib.config.directstartmode;
+        ui.create.menu(true);
         var createNode=function(){
             if(event.created) return;
+            if(directstartmode&&lib.node){
+                ui.exitroom=ui.create.system('退出房间',function(){
+                    game.saveConfig('directstartmode');
+                    game.reload();
+                },true);
+                game.switchMode(directstartmode);
+                return;
+            }
+            if(lib.node&&window.require){
+                ui.startServer=ui.create.system('启动服务器',function(e){
+                    e.stopPropagation();
+                    ui.click.connectMenu();
+                },true);
+            }
+
             event.created=true;
             var node=ui.create.div('.shadowed');
             node.style.width='400px';
@@ -11,10 +28,10 @@ mode.connect={
             node.style.fontFamily='xinwei';
             node.style.fontSize='30px';
             node.style.padding='10px';
-            node.style.left='calc(50% - 200px)';
+            node.style.left='calc(50% - 210px)';
             node.style.top='calc(50% - 20px)';
             node.style.whiteSpace='nowrap';
-            node.innerHTML=lib.config.last_ip||'';
+            node.innerHTML=lib.config.last_ip||lib.hallURL;
             node.contentEditable=true;
             node.style.webkitUserSelect='text';
             node.style.textAlign='center';
@@ -54,6 +71,13 @@ mode.connect={
             ui.window.appendChild(button);
             ui.ipbutton=button;
 
+            ui.hall_button=ui.create.system('联机大厅',function(){
+                node.innerHTML=get.config('hall_ip')||lib.hallURL;
+                connect();
+            },true);
+            if(!get.config('hall_button')){
+                ui.hall_button.style.display='none';
+            }
             ui.recentIP=ui.create.system('最近连接',null,true);
             var clickLink=function(){
                 node.innerHTML=this.innerHTML;
@@ -81,9 +105,13 @@ mode.connect={
                 return uiintro;
             },220);
         }
-        if(lib.config.reconnect_info){
+        if(window.isNonameServer){
+            game.connect('localhost');
+        }
+        else if(lib.config.reconnect_info){
             var info=lib.config.reconnect_info;
             game.onlineID=info[1];
+            game.roomId=info[2];
             var n=5;
             var connect=function(){
                 game.connect(info[0],function(success){

@@ -1,6 +1,5 @@
 'use strict';
 card.hearth={
-	// forbid:['stone'],
 	card:{
 		linghunzhihuo:{
 			fullskin:true,
@@ -38,7 +37,7 @@ card.hearth={
 		},
 		jihuocard:{
 			fullskin:true,
-			type:'basic',
+			type:'trick',
 			enable:true,
 			filterTarget:function(card,player,target){
 				return player==target;
@@ -46,12 +45,10 @@ card.hearth={
 			selectTarget:-1,
 			content:function(){
 				target.skip('phaseDiscard');
-				if(target.num('h')<=target.hp){
-					target.draw();
-				}
+				target.draw();
 			},
 			ai:{
-				order:1,
+				order:10,
 				result:{
 					target:1
 				}
@@ -142,9 +139,8 @@ card.hearth={
 				'step 2'
 				game.delay(0.5);
 				'step 3'
-				var hs=player.get('h');
-				if(hs.length){
-					player.discard(hs.randomGet());
+				if(target.num('h')){
+					target.chooseToDiscard('h',true);
 				}
 			},
 			ai:{
@@ -153,9 +149,8 @@ card.hearth={
 				useful:2,
 				result:{
 					target:function(player,target){
-						return Math.max(0,2-target.num('e'));
+						return Math.max(0,2-target.num('e'))+(target.num('h')?0:0.5);
 					},
-					player:-0.5
 				}
 			}
 		},
@@ -229,7 +224,7 @@ card.hearth={
 						return 0;
 					},
 					target:function(player,target){
-						if(target.skills.contains('shandianjian2')||target.num('h')==0) return 0;
+						if(target.hasSkill('shandianjian2')||target.num('h')==0) return 0;
 						if(player.num('h')<=1) return 0;
 						if(target==player){
 							if(typeof _status.event.filterCard=='function'&&
@@ -320,6 +315,7 @@ card.hearth={
 				return player==target;
 			},
 			selectTarget:-1,
+			modTarget:true,
 			content:function(){
 				target.changeHujia();
 				target.draw();
@@ -343,6 +339,7 @@ card.hearth={
 				return target==player;
 			},
 			usable:3,
+			forceUsable:true,
 			content:function(){
 				'step 0'
 				ui.special.appendChild(cards[0]);
@@ -380,14 +377,16 @@ card.hearth={
 		tanshezhiren:{
 			fullskin:true,
 			type:'trick',
-			enable:function(){
+			enable:function(card,player){
+				if(game.players.length<3) return false;
 				for(var i=0;i<game.players.length;i++){
-					if(game.players[i].num('h')) return true;
+					if(game.players[i]!=player&&game.players[i].num('h')) return true;
 				}
 				return false;
 			},
+			chongzhu:true,
 			filterTarget:function(card,player,target){
-				return target.num('h')>0;
+				return target.num('h')>0&&target!=player;
 			},
 			selectTarget:-1,
 			multitarget:true,
@@ -439,9 +438,10 @@ card.hearth={
 		},
 		xingjiegoutong:{
 			fullskin:true,
-			type:'basic',
+			type:'trick',
 			enable:true,
 			selectTarget:-1,
+			modTarget:true,
 			filterTarget:function(card,player,target){return player==target},
 			content:function(){
 				target.gainMaxHp();
@@ -463,6 +463,9 @@ card.hearth={
 						return 0;
 					},
 				},
+				tag:{
+					recover:1
+				}
 			}
 		},
 		shenenshu:{
@@ -493,7 +496,7 @@ card.hearth={
 				result:{
 					target:function(player,target){
 						var nh=player.num('h')-target.num('h');
-						if(!player.skills.contains('jizhi')){
+						if(!player.hasSkill('jizhi')){
 							nh--;
 						}
 						if(nh>0) return nh;
@@ -502,7 +505,7 @@ card.hearth={
 					},
 					player:function(player,target){
 						var nh=target.num('h')-player.num('h');
-						if(!player.skills.contains('jizhi')){
+						if(!player.hasSkill('jizhi')){
 							nh++;
 						}
 						if(nh>0) return nh;
@@ -551,6 +554,9 @@ card.hearth={
 						if(target.hp==1) return 2.5;
 						return 2;
 					}
+				},
+				tag:{
+					recover:1
 				}
 			}
 		},
@@ -563,12 +569,16 @@ card.hearth={
 			content:function(){
 				"step 0"
 				target.chooseToDiscard([1,2],'he').ai=function(card){
-					if(ai.get.damageEffect(target,player,target,'thunder')>=0) return 0;
-					if(target.hasSkillTag('maixie')&&target.hp>1&&ui.selected.cards.length){
-						return 0;
+					if(ai.get.damageEffect(target,player,target,'thunder')>=0){
+						if(target.hasSkillTag('maixie')){
+							if(ui.selected.cards.length) return 0;
+						}
+						else{
+							return 0;
+						}
 					}
-					if(player.get('s').contains('xinwuyan')) return 0;
-					if(target.get('s').contains('xinwuyan')) return 0;
+					if(player.hasSkillTag('notricksource')) return 0;
+					if(target.hasSkillTag('notrick')) return 0;
 					if(card.name=='tao') return 0;
 					if(target.hp==1&&card.name=='jiu') return 0;
 					if(get.type(card)!='basic'){
@@ -639,7 +649,7 @@ card.hearth={
 		xingjiegoutong:'星界沟通',
 		xingjiegoutong_info:'增加一点体力上限并回复一点体力，弃置你的所有手牌',
 		tanshezhiren:'弹射之刃',
-		tanshezhiren_info:'弃置一名随机角色的手牌，重复此过程直到有一名角色失去最后一张手牌（最多重复10次）',
+		tanshezhiren_info:'限场存活角色不小于3时使用，弃置一名随机角色（不含你）的手牌，重复此过程直到有一名角色失去最后一张手牌（最多重复10次）',
 		chuansongmen:'传送门',
 		chuansongmen_info:'摸一张牌，若你能立即使用之，则将此牌回手（每回合最多使用3次）',
 		dunpaigedang:'盾牌格挡',
@@ -651,15 +661,15 @@ card.hearth={
 		shandianjian:'闪电箭',
 		shandianjian_info:'目标角色展示一张手牌，然后若你能弃掉一张与所展示牌相同花色的手牌，则对该角色造成1点雷电伤害。',
 		shijieshu:'视界术',
-		shijieshu_info:'目标随机装备牌堆中的两张装备牌，使用者随机弃置一张手牌',
+		shijieshu_info:'目标随机装备牌堆中的两张装备牌，然后弃置一张手牌',
 		zhaomingdan:'照明弹',
 		zhaomingdan_info:'弃置一名其他角色判定区内的所有牌，然后摸一张牌',
 		jihuocard:'激活',
-		jihuocard_info:'跳过本回合的弃牌阶段，若你手牌数不大于当前体力值，则摸一张牌',
+		jihuocard_info:'跳过本回合的弃牌阶段，摸一张牌',
 	},
 	list:[
-		['heart',2,'shenenshu'],
-		['diamond',12,'shenenshu'],
+		// ['heart',2,'shenenshu'],
+		// ['diamond',12,'shenenshu'],
 		['club',7,'zhiliaobo'],
 		['spade',1,'zhiliaobo'],
 		['spade',13,'yuansuhuimie'],

@@ -1,6 +1,23 @@
 window.noname_update={
-    version:'1.8.4.2',
+    version:'1.9.0.2',
     changeLog:[
-        '修bug',
-    ]
+        'bug修复',
+    ],
+    files:{
+        global:[
+            'game/game.js',
+            'card/extra.js',
+            'card/swd.js',
+            'character/ow.js',
+            'character/gujian.js',
+            'mode/brawl.js',
+            'mode/tafang.js',
+            'layout/default/layout.css',
+        ],
+        '1.9.0.1':[]
+    }
 }
+
+//增加牌堆补充扩展
+//改进塔防模式
+//新武将

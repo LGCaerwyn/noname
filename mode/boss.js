@@ -178,9 +178,12 @@ mode.boss={
 			ui.control.classList.remove('bosslist');
 		},500);
 		var rect=event.current.getBoundingClientRect();
-		var boss=ui.create.player().init(event.current.name);
+		var boss=ui.create.player();
+		boss.getId();
+		boss.init(event.current.name);
 		game.boss=boss;
 		boss.side=true;
+		boss.node.equips.style.opacity='0';
 		if(!event.noslide){
 			// boss.classList.add('bossplayer');
 			// boss.classList.add('highlight');
@@ -196,7 +199,9 @@ mode.boss={
 			game.saveConfig('continue_name_boss');
 		}
 		for(var i=0;i<result.links.length;i++){
-			var player=ui.create.player(ui.arena).init(result.links[i]).animate('start');
+			var player=ui.create.player(ui.arena);
+			player.getId();
+			player.init(result.links[i]).animate('start');
 			player.setIdentity('cai');
 			player.identity='cai';
 			player.side=false;
@@ -228,25 +233,27 @@ mode.boss={
 			game.onSwapControl();
 			// ui.fakemebg.show();
 
-			lib.setPopped(ui.create.system('手牌',null,true),function(){
-				var uiintro=ui.create.dialog('hidden');
+			if(lib.config.show_handcardbutton){
+				lib.setPopped(ui.create.system('手牌',null,true),function(){
+					var uiintro=ui.create.dialog('hidden');
 
-				var players=game.players.concat(game.dead);
-				for(var i=0;i<players.length;i++){
-					if(players[i].side==game.me.side&&players[i]!=game.me){
-						uiintro.add(get.translation(players[i]));
-						var cards=players[i].get('h');
-						if(cards.length){
-							uiintro.addSmall(cards,true);
-						}
-						else{
-							uiintro.add('（无）');
+					var players=game.players.concat(game.dead);
+					for(var i=0;i<players.length;i++){
+						if(players[i].side==game.me.side&&players[i]!=game.me){
+							uiintro.add(get.translation(players[i]));
+							var cards=players[i].get('h');
+							if(cards.length){
+								uiintro.addSmall(cards,true);
+							}
+							else{
+								uiintro.add('（无）');
+							}
 						}
 					}
-				}
 
-				return uiintro;
-			},220);
+					return uiintro;
+				},220);
+			}
 		}
 		lib.setPopped(ui.create.system('重整',null,true),function(){
 			var uiintro=ui.create.dialog('hidden');
@@ -308,6 +315,9 @@ mode.boss={
 		boss.style.left='';
 		boss.style.top='';
 		boss.style.position='';
+		setTimeout(function(){
+			boss.node.equips.style.opacity='';
+		},500);
 
 		event.bosslist.delete();
 
@@ -375,7 +385,9 @@ mode.boss={
 			}
 			game.boss.delete();
 			game.dead.remove(game.boss);
-			var boss=ui.create.player().init(name);
+			var boss=ui.create.player();
+			boss.getId();
+			boss.init(name);
 			game.addVideo('bossSwap',game.boss,boss.name);
 			if(game.me==game.boss){
 				boss.dataset.position=0;
@@ -416,7 +428,7 @@ mode.boss={
 			var next=game.createEvent('phaseLoop');
 			next.player=game.boss;
 			_status.looped=true;
-			next.content=function(){
+			next.setContent(function(){
 				"step 0"
 				if(player.chongzheng){
 					player.chongzheng=false;
@@ -474,7 +486,7 @@ mode.boss={
 					event.player=event.player.nextSeat;
 				}
 				event.goto(0);
-			}
+			});
 		},
 		onSwapControl:function(){
 			if(game.me==game.boss) return;
@@ -510,7 +522,7 @@ mode.boss={
 					player.init(list[0]);
 				}
 			}
-			next.content=function(){
+			next.setContent(function(){
 				"step 0"
 				var i;
 				var list=[];
@@ -550,14 +562,14 @@ mode.boss={
 						game.changeCoin(-3);
 					}
 					list.randomSort();
-					_status.event.dialog.close();
-					_status.event.dialog=ui.create.dialog('选择参战角色','hidden');
-					ui.window.appendChild(_status.event.dialog);
-					_status.event.dialog.classList.add('bosscharacter');
-					_status.event.dialog.classList.add('withbg');
-					_status.event.dialog.classList.add('fixed');
-					// _status.event.dialog.add('0/3');
-					_status.event.dialog.add([list.slice(0,20),'character']);
+
+					var buttons=ui.create.div('.buttons');
+					var node=_status.event.dialog.buttons[0].parentNode;
+					_status.event.dialog.buttons=ui.create.buttons(list.slice(0,20),'character',buttons);
+					_status.event.dialog.content.insertBefore(buttons,node);
+					buttons.animate('start');
+					node.remove();
+
 					game.uncheck();
 					game.check();
 				};
@@ -586,16 +598,11 @@ mode.boss={
 							if(ui.cheat){
 								ui.cheat.style.opacity=1;
 							}
-							if(ui.cheat2x){
-								ui.cheat2x.close();
-								delete ui.cheat2x;
-							}
 						}
 						else{
 							if(game.changeCoin){
 								game.changeCoin(-10);
 							}
-							ui.cheat2x=ui.create.groupControl(_status.event.parent.dialogxx);
 							this.backup=_status.event.dialog;
 							_status.event.dialog.close();
 							_status.event.dialog=_status.event.parent.dialogxx;
@@ -640,10 +647,6 @@ mode.boss={
 					ui.cheat2.close();
 					delete ui.cheat2;
 				}
-				if(ui.cheat2x){
-					ui.cheat2x.close();
-					delete ui.cheat2x;
-				}
 				event.asboss.close();
 				if(event.boss){
 					event.result={
@@ -658,7 +661,7 @@ mode.boss={
 					};
 					_status.coinCoeff=get.coinCoeff(result.links);
 				}
-			}
+			});
 			return next;
 		},
 	},
@@ -779,6 +782,7 @@ mode.boss={
 	ai:{
 		get:{
 			attitude:function(from,to){
+				if(!from||!to) return 0;
 				var t=(from.side===to.side?1:-1);
 				if(from.isMad()){
 					t=-t;
