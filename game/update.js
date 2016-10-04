@@ -1,23 +1,40 @@
 window.noname_update={
-    version:'1.9.0.2',
+    version:'1.9.1.2',
     changeLog:[
-        'bug修复',
+        '修复扩展下载问题',
     ],
     files:{
         global:[
             'game/game.js',
-            'card/extra.js',
+            'character/diy.js',
+            'character/sp.js',
+            'character/yxs.js',
+            'character/hearth.js',
             'card/swd.js',
-            'character/ow.js',
-            'character/gujian.js',
-            'mode/brawl.js',
-            'mode/tafang.js',
-            'layout/default/layout.css',
+            'mode/stone.js',
+            'mode/identity.js',
+            'game/config.js',
         ],
-        '1.9.0.1':[]
+        '1.9.1.1':[]
     }
 }
 
-//增加牌堆补充扩展
-//改进塔防模式
-//新武将
+// 'card/swd.js',
+// 'card/guozhan.js',
+// 'card/hearth.js',
+// 'card/yunchou.js',
+// 'game/package.js',
+// 'game/asset.js',
+// 'game/game.js',
+// 'character/diy.js',
+// 'character/swd.js',
+// 'character/hearth.js',
+// 'character/xianjian.js',
+// 'character/shenhua.js',
+// 'character/ow.js',
+// 'character/yijiang.js',
+// 'mode/boss.js',
+// 'mode/versus.js',
+// 'mode/brawl.js',
+// 'extension/boss/extension.js',
+// 'layout/mode/boss.css',
