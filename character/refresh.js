@@ -168,6 +168,7 @@ game.import('character',function(lib,game,ui,get,ai,_status){
 					},
 					result:{
 						target:function(player,target){
+							if(target.hasSkillTag('nogain')) return 0;
 							if(ui.selected.cards.length&&ui.selected.cards[0].name=='du'){
 								if(target.hasSkillTag('nodu')) return 0;
 								return -10;
@@ -210,8 +211,8 @@ game.import('character',function(lib,game,ui,get,ai,_status){
 				trigger:{source:'damageEnd'},
 				forced:true,
 				filter:function(event,player){
-                    if(event._notrigger.contains(event.player)) return false;
-					return event.card&&event.card.name=='sha'&&event.player.isAlive()&&event.player.countCards('he')>0;
+					if(event._notrigger.contains(event.player)) return false;
+					return event.card&&event.card.name=='sha'&&event.player.isAlive()&&event.player.countGainableCards(player,'he')>0;
 				},
 				check:function(){
 					return false;
@@ -352,7 +353,7 @@ game.import('character',function(lib,game,ui,get,ai,_status){
 				trigger:{player:'damageEnd'},
 				direct:true,
 				filter:function(event,player){
-					return (event.source&&event.source.countCards('he')&&event.num>0&&event.source!=player);
+					return (event.source&&event.source.countGainableCards(player,'he')&&event.num>0&&event.source!=player);
 				},
 				content:function(){
 					player.gainPlayerCard([1,trigger.num],get.prompt('fankui',trigger.source),trigger.source,get.buttonValue,'he').set('logSkill',['refankui',trigger.source]);
@@ -631,6 +632,7 @@ game.import('character',function(lib,game,ui,get,ai,_status){
 				ai:{
 					effect:function(card,player,target){
 						if(!target.hasFriend()) return;
+						if(player==target) return;
 						var type=get.type(card);
 						var nh=target.countCards();
 						if(type=='trick'){
@@ -1123,7 +1125,7 @@ game.import('character',function(lib,game,ui,get,ai,_status){
 				trigger:{source:'damageEnd'},
 				direct:true,
 				filter:function(event){
-                    if(event._notrigger.contains(event.player)) return false;
+					if(event._notrigger.contains(event.player)) return false;
 					return event.card&&event.card.name=='sha'&&event.cards&&
 					get.color(event.cards)=='black'&&event.player.countCards('e');
 				},
@@ -1450,7 +1452,7 @@ game.import('character',function(lib,game,ui,get,ai,_status){
 				audio:2,
 				trigger:{player:'damageEnd',source:'damageEnd'},
 				filter:function(event){
-                    if(event._notrigger.contains(event.player)) return false;
+					if(event._notrigger.contains(event.player)) return false;
 					return event.num&&event.source&&event.player&&
 					event.player.isAlive()&&event.source.isAlive()&&event.source!=event.player;
 				},

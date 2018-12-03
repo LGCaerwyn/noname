@@ -1,70 +1,5 @@
-(function(){
-    if(typeof require !== 'function'||typeof document !== 'undefined') return;
-    global.window=global;
-    require(__dirname+'/update.js');
-    var fs=require('fs');
-    var path=require('path');
-    fs.readFile('game/asset.js','utf-8',function(err, current){
-        var assetlist='\t\''+window.noname_update.version+'\'';
-        var skinlist='\nwindow.noname_skin_list={\n';
-        var get = function(dir,callback){
-            fs.readdir(dir,function(err,list){
-                var shift=function(){
-                    if(list.length){
-                        var filename=list.shift();
-                        var delay=false;
-                        if(!/\.|~|_/.test(filename[0])){
-                            var url=dir+'/'+filename;
-                            var stat=fs.statSync(url);
-                            if(stat.isFile()){
-                                if(['.jpg','.png','.mp3','.ttf'].indexOf(path.extname(url))!=-1){
-                                    assetlist+=',\n\t\''+path.relative(path.dirname(__dirname),url)+'\'';
-                                }
-                            }
-                            else if(stat.isDirectory()){
-                                if(dir==path.dirname(__dirname)+'/image/skin'){
-                                    fs.readdir(url,function(err,list){
-                                        var num=0;
-                                        for(var i=0;i<list.length;i++){
-                                            var url2=url+'/'+list[i];
-                                            var stat=fs.statSync(url2);
-                                            if(stat.isFile()&&path.extname(url2)=='.jpg'){
-                                                num++;
-                                            }
-                                        }
-                                        skinlist+='\t'+filename+':'+num+',\n';
-                                        shift();
-                                    });
-                                    delay=true;
-                                }
-                                else{
-                                    get(url,shift);
-                                    delay=true;
-                                }
-                            }
-                        }
-                        if(!delay){
-                            shift();
-                        }
-                    }
-                    else{
-                        callback();
-                    }
-                }
-                shift();
-            });
-        };
-        get(path.dirname(__dirname),function(){
-            current=current.slice(0,current.lastIndexOf('window.noname_asset_list=[')+26);
-            fs.writeFile('game/asset.js',current+'\n'+assetlist+'\n];'+skinlist.slice(0,skinlist.length-2)+'\n};','utf-8',function(){
-                console.log('done');
-            });
-        });
-    });
-})();
-
 window.noname_asset_list=[
-	'1.9.47',
+	'1.9.56',
 	'audio/background/music_danji.mp3',
 	'audio/background/music_default.mp3',
 	'audio/background/music_diaochan.mp3',
@@ -798,10 +733,10 @@ window.noname_asset_list=[
 	'audio/skill/luoyan4.mp3',
 	'audio/skill/luoyi1.mp3',
 	'audio/skill/luoyi2.mp3',
-	'audio/skill/luoying11.mp3',
-	'audio/skill/luoying12.mp3',
-	'audio/skill/luoying21.mp3',
-	'audio/skill/luoying22.mp3',
+	'audio/skill/luoying_discard1.mp3',
+	'audio/skill/luoying_discard2.mp3',
+	'audio/skill/luoying_judge1.mp3',
+	'audio/skill/luoying_judge2.mp3',
 	'audio/skill/manjuan.mp3',
 	'audio/skill/mazui.mp3',
 	'audio/skill/meibu1.mp3',
@@ -830,6 +765,10 @@ window.noname_asset_list=[
 	'audio/skill/naman2.mp3',
 	'audio/skill/niepan1.mp3',
 	'audio/skill/niepan2.mp3',
+	'audio/skill/ol_shenfen1.mp3',
+	'audio/skill/ol_shenfen2.mp3',
+	'audio/skill/ol_wuqian1.mp3',
+	'audio/skill/ol_wuqian2.mp3',
 	'audio/skill/paiyi1.mp3',
 	'audio/skill/paiyi2.mp3',
 	'audio/skill/paoxiao1.mp3',
@@ -1303,6 +1242,7 @@ window.noname_asset_list=[
 	'image/card/diaobingqianjiang.png',
 	'image/card/diaohulishan.png',
 	'image/card/dilu.png',
+	'image/card/dinglanyemingzhu.png',
 	'image/card/donghuangzhong.png',
 	'image/card/du.png',
 	'image/card/dunpaigedang.png',
@@ -1574,6 +1514,8 @@ window.noname_asset_list=[
 	'image/card/ziyangdan.png',
 	'image/card/zong.png',
 	'image/character/baiwuchang.jpg',
+	'image/character/beimihu.jpg',
+	'image/character/bianfuren.jpg',
 	'image/character/bulianshi.jpg',
 	'image/character/buzhi.jpg',
 	'image/character/caifuren.jpg',
@@ -1726,18 +1668,21 @@ window.noname_asset_list=[
 	'image/character/hs_anduin.jpg',
 	'image/character/hs_anomalus.jpg',
 	'image/character/hs_antonidas.jpg',
+	'image/character/hs_ashamoer.jpg',
 	'image/character/hs_aya.jpg',
 	'image/character/hs_baiguyoulong.jpg',
 	'image/character/hs_bannabusi.jpg',
 	'image/character/hs_barnes.jpg',
 	'image/character/hs_bchillmaw.jpg',
 	'image/character/hs_bilanyoulong.jpg',
+	'image/character/hs_bingshuangnvwang.jpg',
 	'image/character/hs_blingtron.jpg',
 	'image/character/hs_bolvar.jpg',
 	'image/character/hs_brann.jpg',
 	'image/character/hs_enzoth.jpg',
 	'image/character/hs_fachaotuteng.jpg',
 	'image/character/hs_fandral.jpg',
+	'image/character/hs_fengjianhuanfengzhe.jpg',
 	'image/character/hs_fenjie.jpg',
 	'image/character/hs_finley.jpg',
 	'image/character/hs_fuding.jpg',
@@ -1799,6 +1744,7 @@ window.noname_asset_list=[
 	'image/character/hs_shuiwenxuejia.jpg',
 	'image/character/hs_siwangzhiyi.jpg',
 	'image/character/hs_sthrall.jpg',
+	'image/character/hs_taisi.jpg',
 	'image/character/hs_tanghangu.jpg',
 	'image/character/hs_tgolem.jpg',
 	'image/character/hs_totemic.jpg',
@@ -1818,6 +1764,8 @@ window.noname_asset_list=[
 	'image/character/hs_xuefashi.jpg',
 	'image/character/hs_yangyanwageli.jpg',
 	'image/character/hs_yashaji.jpg',
+	'image/character/hs_yelinchulong.jpg',
+	'image/character/hs_yelinlonghou.jpg',
 	'image/character/hs_yelise.jpg',
 	'image/character/hs_yinggencao.jpg',
 	'image/character/hs_yngvar.jpg',
@@ -1846,6 +1794,7 @@ window.noname_asset_list=[
 	'image/character/jsp_huangyueying.jpg',
 	'image/character/jsp_zhaoyun.jpg',
 	'image/character/jun_liubei.jpg',
+	'image/character/jun_sunquan.jpg',
 	'image/character/jun_zhangjiao.jpg',
 	'image/character/kanze.jpg',
 	'image/character/kongrong.jpg',
@@ -1854,6 +1803,7 @@ window.noname_asset_list=[
 	'image/character/lingcao.jpg',
 	'image/character/lingju.jpg',
 	'image/character/lingtong.jpg',
+	'image/character/liqueguosi.jpg',
 	'image/character/liru.jpg',
 	'image/character/litong.jpg',
 	'image/character/liubei.jpg',
@@ -1868,7 +1818,9 @@ window.noname_asset_list=[
 	'image/character/liyan.jpg',
 	'image/character/lusu.jpg',
 	'image/character/luxun.jpg',
+	'image/character/luzhi.jpg',
 	'image/character/lvbu.jpg',
+	'image/character/lvfan.jpg',
 	'image/character/lvmeng.jpg',
 	'image/character/machao.jpg',
 	'image/character/madai.jpg',
@@ -1924,16 +1876,20 @@ window.noname_asset_list=[
 	'image/character/ns_zuoci.jpg',
 	'image/character/old_caoxiu.jpg',
 	'image/character/old_caozhen.jpg',
+	'image/character/old_chenqun.jpg',
 	'image/character/old_huaxiong.jpg',
 	'image/character/old_lingju.jpg',
 	'image/character/old_lingtong.jpg',
 	'image/character/old_madai.jpg',
+	'image/character/old_maliang.jpg',
 	'image/character/old_quancong.jpg',
 	'image/character/old_wangyi.jpg',
 	'image/character/old_xusheng.jpg',
 	'image/character/old_yuanshu.jpg',
 	'image/character/old_zhonghui.jpg',
+	'image/character/old_zhuhuan.jpg',
 	'image/character/old_zhuran.jpg',
+	'image/character/old_zhuzhi.jpg',
 	'image/character/ow_ana.jpg',
 	'image/character/ow_banzang.jpg',
 	'image/character/ow_baolei.jpg',
@@ -2028,6 +1984,7 @@ window.noname_asset_list=[
 	'image/character/re_zhangliao.jpg',
 	'image/character/re_zhaoyun.jpg',
 	'image/character/re_zhouyu.jpg',
+	'image/character/shamoke.jpg',
 	'image/character/shen_caocao.jpg',
 	'image/character/shen_guanyu.jpg',
 	'image/character/shen_lvbu.jpg',
@@ -2050,6 +2007,7 @@ window.noname_asset_list=[
 	'image/character/sp_jiangwei.jpg',
 	'image/character/sp_jiaxu.jpg',
 	'image/character/sp_liubei.jpg',
+	'image/character/sp_liuqi.jpg',
 	'image/character/sp_lvmeng.jpg',
 	'image/character/sp_machao.jpg',
 	'image/character/sp_pangde.jpg',
@@ -2145,6 +2103,7 @@ window.noname_asset_list=[
 	'image/character/swd_youzhao.jpg',
 	'image/character/swd_yuchiyanhong.jpg',
 	'image/character/swd_yuli.jpg',
+	'image/character/swd_yunhu.jpg',
 	'image/character/swd_yuwentuo.jpg',
 	'image/character/swd_yuxiaoxue.jpg',
 	'image/character/swd_zhanggao.jpg',
@@ -2926,6 +2885,7 @@ window.noname_skin_list={
 	yuanshu:4,
 	yuejin:3,
 	yufan:1,
+	yuji:1,
 	yujin:1,
 	zhangbao:1,
 	zhangchunhua:4,
@@ -2945,5 +2905,5 @@ window.noname_skin_list={
 	zhugeliang:5,
 	zhuran:1,
 	zhurong:3,
-	zuoci:3
+	zuoci:4
 };

@@ -4,6 +4,45 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 		name:'guozhan',
 		connect:true,
 		card:{
+			minguangkai:{
+				mode:['guozhan'],
+				fullskin:true,
+				type:'equip',
+				subtype:'equip2',
+				cardimage:'suolianjia',
+				skills:['minguangkai_cancel','minguangkai_link'],
+				ai:{
+					basic:{
+						equipValue:6
+					}
+				}
+			},
+			dinglanyemingzhu:{
+				mode:['guozhan'],
+				fullskin:true,
+				type:'equip',
+				subtype:'equip5',
+				nomod:true,
+				nopower:true,
+				unique:true,
+				global:'g_dinglanyemingzhu_ai',
+				skills:['dinglanyemingzhu_skill'],
+				ai:{
+					equipValue:function(card,player){
+						if(player.hasSkill('jubao')) return 8;
+						if(player.hasSkill('gzzhiheng')) return 6;
+						if(game.hasPlayer(function(current){
+							return current.hasSkill('jubao')&&get.attitude(player,current)<=0;
+						})){
+							return 0;
+						}
+						return 7;
+					},
+					basic:{
+						equipValue:6.5
+					}
+				}
+			},
 			feilongduofeng:{
 				mode:['guozhan'],
 				fullskin:true,
@@ -11,7 +50,7 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 				subtype:'equip1',
 				nomod:true,
 				nopower:true,
-	            unique:true,
+				unique:true,
 				global:'g_feilongduofeng_ai',
 				distance:{attackFrom:-1},
 				skills:['feilongduofeng','feilongduofeng2'],
@@ -37,7 +76,7 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 				subtype:'equip2',
 				nomod:true,
 				nopower:true,
-	            unique:true,
+				unique:true,
 				global:['g_taipingyaoshu','g_taipingyaoshu_ai'],
 				skills:['taipingyaoshu'],
 				ai:{
@@ -74,7 +113,6 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 			xietianzi:{
 				fullskin:true,
 				type:'trick',
-				lianheng:true,
 				enable:function(card,player,event){
 					if(get.mode()=='guozhan'&&!player.isMajor()) return false;
 					if(player.hasSkill('xietianzi')) return false;
@@ -130,6 +168,13 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 				enable:true,
 				content:function(){
 					'step 0'
+					if(!target.countCards('e',function(card){
+						return lib.filter.cardDiscardable(card,target);
+					})){
+						target.damage('thunder');
+						event.finish();
+						return;
+					}
 					target.chooseControl('discard_card','take_damage',function(event,player){
 						if(get.damageEffect(player,event.player,player,'thunder')>=0){
 							return 'take_damage';
@@ -326,7 +371,6 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 			diaohulishan:{
 				fullskin:true,
 				type:'trick',
-				lianheng:true,
 				enable:true,
 				global:'g_diaohulishan',
 				filterTarget:function(card,player,target){
@@ -362,7 +406,6 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 				}
 			},
 			huxinjing:{
-				lianheng:true,
 				fullskin:true,
 				type:"equip",
 				subtype:"equip2",
@@ -376,7 +419,6 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 			huoshaolianying:{
 				fullskin:true,
 				type:'trick',
-				lianheng:true,
 				filterTarget:function(card,player,target){
 					if(get.mode()=='guozhan'){
 						var next=player.getNext();
@@ -581,7 +623,7 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 								}
 								return 0.3;
 							}
-							return 1;
+							return Math.sqrt(target.countCards('he'));
 						},
 					},
 					tag:{
@@ -627,11 +669,80 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 				fullskin:true,
 				type:'equip',
 				subtype:'equip4',
-				lianheng:true,
 				distance:{globalFrom:-1},
 			},
 		},
 		skill:{
+			minguangkai_cancel:{
+				trigger:{target:'useCardToBefore'},
+				forced:true,
+				priority:15,
+				check:function(event,player){
+					return get.effect(event.target,event.card,event.player,player)<0;
+				},
+				filter:function(event,player){
+					if(['huoshaolianying','huogong'].contains(event.card.name)) return true;
+					if(event.card.name=='sha') return event.card.nature=='fire';
+					return false;
+				},
+				content:function(){
+					trigger.cancel();
+				},
+				ai:{
+					effect:{
+						target:function(card,player,target,current){
+							if(['huoshaolianying','huogong'].contains(card.name)||(card.name=='sha'&&card.nature=='fire')){
+								return 'zeroplayertarget';
+							}
+						},
+					}
+				}
+			},
+			minguangkai_link:{
+				trigger:{player:'linkBefore'},
+				forced:true,
+				priority:20,
+				filter:function(event,player){
+					return player.isMinor()&&!player.isLinked();
+				},
+				content:function(){
+					trigger.cancel();
+				},
+				ai:{
+					effect:{
+						target:function(card,player,target,current){
+							if(target.isMinor()&&['tiesuo','lulitongxin'].contains(card.name)){
+								return 'zeroplayertarget';
+							}
+						},
+					}
+				}
+			},
+			dinglanyemingzhu_skill:{
+				inherit:'gzzhiheng',
+				filter:function(event,player){
+					return !player.hasSkill('gzzhiheng');
+				},
+				selectCard:function(){
+					var player=_status.event.player;
+					return [1,player.maxHp];
+				},
+				prompt:'出牌阶段限一次，你可以弃置至多X张牌（X为你的体力上限），然后摸等量的牌'
+			},
+			g_dinglanyemingzhu_ai:{
+				ai:{
+					effect:{
+						player:function(card,player){
+							if(player.hasSkill('jubao')) return;
+							if(card.name=='dinglanyemingzhu'&&game.hasPlayer(function(current){
+								return current.hasSkill('jubao')&&get.attitude(player,current)<=0;
+							})){
+								return [0,0,0,0];
+							}
+						}
+					}
+				}
+			},
 			g_feilongduofeng_ai:{
 				ai:{
 					effect:{
@@ -801,8 +912,12 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 			},
 			taipingyaoshu:{
 				trigger:{player:'damageBefore'},
-				filter:function(event){
-					if(event.source&&event.source.hasSkillTag('unequip',false,event.card)) return false;
+				filter:function(event,player){
+					if(event.source&&event.source.hasSkillTag('unequip',false,{
+						name:event.card?event.card.name:null,
+						target:player,
+						card:event.card
+					})) return false;
 					if(event.nature) return true;
 				},
 				forced:true,
@@ -814,7 +929,11 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 					nothunder:true,
 					effect:{
 						target:function(card,player,target,current){
-							if(player.hasSkillTag('unequip',false,card)) return;
+							if(player.hasSkillTag('unequip',false,{
+								name:card?card.name:null,
+								target:player,
+								card:card
+							})) return;
 							if(get.tag(card,'natureDamage')) return 'zerotarget';
 							if(card.name=='tiesuo'){
 								return [0,0];
@@ -1033,16 +1152,22 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 				group:'undist'
 			},
 			huxinjing:{
-				trigger:{player:'damageBegin'},
-				priority:10,
-				forced:true,
-				filter:function(event){
-					if(event.source&&event.source.hasSkillTag('unequip',false,event.card)) return false;
-					return event.num>0;
+				trigger:{player:'damageBefore'},
+				// forced:true,
+				filter:function(event,player){
+					if(event.source&&event.source.hasSkillTag('unequip',false,{
+						name:event.card?event.card.name:null,
+						target:player,
+						card:event.card
+					})) return false;
+					return event.num>=player.hp;
 				},
 				content:function(){
-					trigger.num--;
-					player.addSkill('huxinjing2');
+					trigger.cancel();
+					var e2=player.getEquip('huxinjing');
+					if(e2){
+						player.discard(e2);
+					}
 				}
 			},
 			huxinjing2:{
@@ -1056,52 +1181,6 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 						player.discard(card);
 					}
 					player.removeSkill('huxinjing2');
-				}
-			},
-			_lianheng:{
-				mode:['guozhan'],
-				enable:'phaseUse',
-				prompt:'将可连横的牌交给一名与你势力不同的角色，或未确定势力的角色，若你交给与你势力不同的角色，则你摸一张牌',
-				filter:function(event,player){
-					return (player.getCards('h',function(card){
-						return get.info(card).lianheng;
-					}).length);
-				},
-				filterCard:function(card){
-					return get.info(card).lianheng;
-				},
-				filterTarget:function(card,player,target){
-					if(target==player) return false;
-					if(player.isUnseen()) return target.isUnseen();
-					if(player.identity=='ye') return true;
-					return target.identity!=player.identity;
-				},
-				prepare:'give',
-				discard:false,
-				// delay:0.5,
-				content:function(){
-					"step 0"
-					target.gain(cards,player);
-					"step 1"
-					if(!target.isUnseen()){
-						player.draw();
-					}
-				},
-				ai:{
-					basic:{
-						order:2
-					},
-					result:{
-						player:function(player,target){
-							if(target.isUnseen()) return 0;
-							if(player.isMajor()) return 0;
-							return 0.5;
-						},
-						target:function(player,target){
-							if(target.isUnseen()) return 0;
-							return 1;
-						}
-					},
 				}
 			},
 			wuliu_skill:{},
@@ -1157,6 +1236,15 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 			},
 		},
 		translate:{
+			minguangkai:'明光铠',
+			minguangkai_cancel:'明光铠',
+			minguangkai_link:'明光铠',
+			minguangkai_info:'锁定技，当你成为【火烧连营】、【火攻】或火【杀】的目标时，取消之；若你是小势力角色，你不会被横置。',
+			dinglanyemingzhu:'定澜夜明珠',
+			dinglanyemingzhu_bg:'珠',
+			dinglanyemingzhu_info:'锁定技，你视为拥有技能“制衡”，若你已经有“制衡”，则改为取消弃置牌数的限制。',
+			dinglanyemingzhu_skill:'制衡',
+			dinglanyemingzhu_skill_info:'出牌阶段限一次，你可以弃置至多X张牌（X为你的体力上限），然后摸等量的牌',
 			feilongduofeng:'飞龙夺凤',
 			feilongduofeng2:'飞龙夺凤',
 			feilongduofeng_info:'当你使用【杀】指定一名角色为目标后，你可令该角色弃置一张牌。你使用【杀】杀死一名角色后，若你所属的势力是全场最少的（或之一），你可令该角色的使用者选择是否从未使用的武将牌中选择一张与你势力相同的武将牌重新加入游戏',
@@ -1179,7 +1267,6 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 			chiling_info:'出牌阶段，对所有没有势力的角色使用。目标角色选择一项：1、明置一张武将牌，然后摸一张牌；2、弃置一张装备牌；3、失去1点体力。当【敕令】因判定或弃置而置入弃牌堆时，系统将之移出游戏，然后系统于当前回合结束后视为对所有没有势力的角色使用【敕令】',
 			diaohulishan:'调虎离山',
 			diaohulishan_info:'出牌阶段，对至多两名其他角色使用。目标角色于此回合结束之前不计入距离的计算且不能使用牌且不是牌的合法目标。此牌结算结束时，你摸一张牌',
-			_lianheng:'连横',
 			huoshaolianying:'火烧连营',
 			huoshaolianying_bg:'烧',
 			huoshaolianying_info_guozhan:'出牌阶段，对你的下家和与其处于同一队列的角色使用，每名角色受到一点火焰伤害',
@@ -1206,7 +1293,7 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 			jingfanma_info:'你的进攻距离+1',
 			huxinjing_bg:'镜',
 			huxinjing:'护心镜',
-			huxinjing_info:'抵消一点伤害',
+			huxinjing_info:'当你受到伤害时，若伤害值大于或等于你的体力值，则你可以将【护心镜】置入弃牌堆，然后防止此伤害。',
 		},
 		list:[
 			['heart',9,'yuanjiao'],

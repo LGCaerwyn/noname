@@ -5,7 +5,7 @@ game.import('character',function(lib,game,ui,get,ai,_status){
 		character:{
 			gjqt_bailitusu:['male','shu',4,['xuelu','fanshi','shahun']],
 			gjqt_fengqingxue:['female','wu',3,['qinglan','yuehua','swd_wuxie']],
-			gjqt_xiangling:['female','wu',3,['qianhuan','meihu','xidie']],
+			gjqt_xiangling:['female','wu',3,['xlqianhuan','meihu','xidie']],
 			gjqt_fanglansheng:['male','wu',3,['fanyin','mingkong','fumo']],
 			gjqt_yinqianshang:['male','qun',4,['zuiji','zuizhan']],
 			gjqt_hongyu:['female','shu',4,['jianwu','meiying']],
@@ -38,7 +38,7 @@ game.import('character',function(lib,game,ui,get,ai,_status){
 			zuiji:{
 				enable:'phaseUse',
 				filterCard:true,
-	            position:'he',
+				position:'he',
 				viewAs:{name:'jiu'},
 				viewAsFilter:function(player){
 					if(!player.countCards('he')) return false;
@@ -403,6 +403,7 @@ game.import('character',function(lib,game,ui,get,ai,_status){
 					}
 				},
 				filterCard:function(card){
+					if(ui.selected.cards.length&&card.name==ui.selected.cards[0].name) return false;
 					var info=get.info(card);
 					return info.type=='equip'&&!info.nomod&&!info.unique&&lib.inpile.contains(card.name);
 				},
@@ -451,7 +452,7 @@ game.import('character',function(lib,game,ui,get,ai,_status){
 								result:{
 									target:function(player,target){
 										return get.equipResult(player,target,name);
-			    					}
+									}
 								}
 							}
 						}
@@ -672,7 +673,7 @@ game.import('character',function(lib,game,ui,get,ai,_status){
 					}
 				}
 			},
-			qianhuan:{
+			xlqianhuan:{
 				trigger:{player:'phaseAfter'},
 				check:function(event,player){
 					return player.hp==1||player.isTurnedOver();
@@ -1540,8 +1541,8 @@ game.import('character',function(lib,game,ui,get,ai,_status){
 			gjqt_xiayize:'夏夷则',
 			gjqt_aruan:'阿阮',
 
-	        zuiji:'醉饮',
-	        zuiji_info:'出牌阶段，你可以将一张手牌或装备牌当作酒使用',
+			zuiji:'醉饮',
+			zuiji_info:'出牌阶段，你可以将一张手牌或装备牌当作酒使用',
 			manwu:'曼舞',
 			manwu_info:'在一名角色的结束阶段，若其手牌数为全场最少或之一，你可以令其摸一张牌',
 			xfanghua:'芳华',
@@ -1567,8 +1568,8 @@ game.import('character',function(lib,game,ui,get,ai,_status){
 			meiying_info:'一名其他角色的回合结束时，若其未于此回合内使用过指定另一名角色为目标的牌，你可以弃置一张红色牌视为对其使用一张杀',
 			zuizhan:'乱斩',
 			zuizhan_info:'每当你使用一张杀，可以摸一张牌，然后此杀随机增加一个额外目标',
-			qianhuan:'千幻',
-			qianhuan_info:'回合结束后，若你已受伤，你可以回复一点体力并将武将牌翻面。若你的武将牌背面朝上，你不能使用卡牌，也不能成为卡牌的目标',
+			xlqianhuan:'千幻',
+			xlqianhuan_info:'回合结束后，若你已受伤，你可以回复一点体力并将武将牌翻面。若你的武将牌背面朝上，你不能使用卡牌，也不能成为卡牌的目标',
 			fumo:'伏魔',
 			fumo_info:'每当你受到一次伤害，可以弃置两张颜色相同的手牌并对伤害来源造成一点雷电伤害',
 			fanyin:'梵音',

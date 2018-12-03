@@ -3,6 +3,18 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 	return {
 		name:'swd',
 		card:{
+			hufu:{
+				fullskin:true,
+				type:'basic',
+				global:['g_hufu_sha','g_hufu_shan','g_hufu_jiu'],
+				savable:function(card,player,dying){
+					return dying==player;
+				},
+				ai:{
+					value:[7.5,5,2],
+					useful:[7.5,5,2],
+				}
+			},
 			// yihuajiemu:{
 			// 	fullskin:true,
 			// 	type:'trick',
@@ -544,8 +556,8 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 						target:1
 					},
 					order:function(){
-	                    return get.order({name:'sha'})+0.1;
-	                },
+						return get.order({name:'sha'})+0.1;
+					},
 				}
 			},
 			xuejibingbao:{
@@ -721,7 +733,7 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 				subtype:'equip5',
 				nomod:true,
 				nopower:true,
-	            unique:true,
+				unique:true,
 				skills:['donghuangzhong'],
 				ai:{
 					equipValue:7
@@ -733,7 +745,7 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 				subtype:'equip1',
 				nomod:true,
 				nopower:true,
-	            unique:true,
+				unique:true,
 				skills:['xuanyuanjian','xuanyuanjian2','xuanyuanjian3'],
 				enable:function(card,player){
 					return player.hasSkill('xuanyuan')||player.hp>2;
@@ -758,7 +770,7 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 				skills:['pangufu'],
 				nomod:true,
 				nopower:true,
-	            unique:true,
+				unique:true,
 				distance:{attackFrom:-3},
 				ai:{
 					equipValue:8
@@ -772,7 +784,7 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 				loseDelay:false,
 				nomod:true,
 				nopower:true,
-	            unique:true,
+				unique:true,
 				onEquip:function(){
 					player.markSkill('lianyaohu_skill');
 				},
@@ -792,7 +804,7 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 				skills:['haotianta'],
 				nomod:true,
 				nopower:true,
-	            unique:true,
+				unique:true,
 				ai:{
 					equipValue:7
 				}
@@ -804,7 +816,7 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 				skills:['kongxin'],
 				nomod:true,
 				nopower:true,
-	            unique:true,
+				unique:true,
 				ai:{
 					equipValue:6
 				}
@@ -816,7 +828,7 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 				skills:['shennongding'],
 				nomod:true,
 				nopower:true,
-	            unique:true,
+				unique:true,
 				ai:{
 					equipValue:6
 				}
@@ -828,7 +840,7 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 				skills:['kongdongyin'],
 				nomod:true,
 				nopower:true,
-	            unique:true,
+				unique:true,
 				ai:{
 					equipValue:function(card,player){
 						if(player.hp==2) return 7;
@@ -847,7 +859,7 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 				skills:['kunlunjingc'],
 				nomod:true,
 				nopower:true,
-	            unique:true,
+				unique:true,
 				ai:{
 					equipValue:6
 				}
@@ -859,7 +871,7 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 				skills:['nvwashi'],
 				nomod:true,
 				nopower:true,
-	            unique:true,
+				unique:true,
 				ai:{
 					equipValue:5
 				}
@@ -938,7 +950,10 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 				content:function(){
 					'step 0'
 					if(player.countCards('he')){
-						player.chooseCard(true,'he');
+						player.chooseCard(true,'he').set('prompt2','你将'+
+						get.translation(cards)+'和选择牌置于'+get.translation(target)+
+						'的武将牌上，然后摸一张牌；'+get.translation(target)+
+						'于下一结束阶段获得武将牌上的牌');
 					}
 					else{
 						event.finish();
@@ -1088,7 +1103,8 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 					for(var i=0;i<es.length;i++){
 						if(lib.inpile.contains(es[i].name)&&
 							!lib.card[es[i].name].nopower&&
-							!lib.card[es[i].name].unique){
+							!lib.card[es[i].name].unique&&
+							!es[i].nopower){
 							return true;
 						}
 					}
@@ -1127,7 +1143,7 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 					var cards=[];
 					var time=0;
 					for(var i=0;i<es.length;i++){
-						if(!lib.inpile.contains(es[i].name)||lib.card[es[i].name].nopower||lib.card[es[i].name].unique){
+						if(!lib.inpile.contains(es[i].name)||lib.card[es[i].name].nopower||lib.card[es[i].name].unique||es[i].nopower){
 							es.splice(i--,1);
 						}
 					}
@@ -1915,6 +1931,7 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 					player.addTempSkill('zhufangshenshi');
 				},
 				ai:{
+					norepeat:1,
 					value:4,
 					wuxie:function(){
 						return 0;
@@ -2165,8 +2182,74 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 				},
 				skills:['guiyanfadao']
 			},
+			qiankundai:{
+				fullskin:true,
+				type:'equip',
+				subtype:'equip5',
+				onLose:function(){
+					player.draw();
+				},
+				skills:['qiankundai'],
+				ai:{
+					order:9.5,
+					equipValue:function(card,player){
+						if(player.countCards('h','qiankundai')) return 6;
+						return 1;
+					},
+					basic:{
+						equipValue:5,
+					}
+				}
+			},
 		},
 		skill:{
+			qiankundai:{
+				mod:{
+					maxHandcard:function(player,num){
+						return num+1;
+					}
+				},
+			},
+			g_hufu_sha:{
+				enable:['chooseToRespond','chooseToUse'],
+				filter:function(event,player){
+					return player.countCards('h','hufu')>0;
+				},
+				filterCard:{name:'hufu'},
+				viewAs:{name:'sha'},
+				prompt:'将一张玉符当杀使用或打出',
+				check:function(card){return 1},
+				ai:{
+					order:1,
+					useful:7.5,
+					value:7.5
+				}
+			},
+			g_hufu_shan:{
+				enable:['chooseToRespond','chooseToUse'],
+				filter:function(event,player){
+					return player.countCards('h','hufu')>0;
+				},
+				filterCard:{name:'hufu'},
+				viewAs:{name:'shan'},
+				prompt:'将一张玉符当闪使用或打出',
+				check:function(){return 1},
+				ai:{
+					order:1,
+					useful:7.5,
+					value:7.5
+				}
+			},
+			g_hufu_jiu:{
+				enable:['chooseToRespond','chooseToUse'],
+				filter:function(event,player){
+					return player.countCards('h','hufu')>0;
+				},
+				filterCard:{name:'hufu'},
+				viewAs:{name:'jiu'},
+				prompt:'将一张玉符当酒使用',
+				check:function(){return 1},
+			},
 			zhiluxiaohu:{
 				trigger:{source:'damageAfter'},
 				forced:true,
@@ -2462,8 +2545,8 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 				},
 				ai:{
 					order:function(){
-	                    return get.order({name:'sha'})+0.11;
-	                },
+						return get.order({name:'sha'})+0.11;
+					},
 					result:{
 						target:function(player,target){
 							return get.effect(target,{name:'sha'},player,target);
@@ -3461,7 +3544,11 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 				forced:true,
 				priority:15,
 				filter:function(event,player){
-					if(event.source&&event.source.hasSkillTag('unequip',false,event.card)) return false;
+					if(event.source&&event.source.hasSkillTag('unequip',false,{
+						name:event.card?event.card.name:null,
+						target:player,
+						card:event.card
+					})) return false;
 					return get.type(event.card,'trick')=='trick';
 				},
 				content:function(){
@@ -3471,7 +3558,11 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 					notrick:true,
 					effect:{
 						target:function(card,player,target,current){
-							if(player.hasSkillTag('unequip',false,card)) return;
+							if(player.hasSkillTag('unequip',false,{
+								name:card?card.name:null,
+								target:player,
+								card:card
+							})) return;
 							if(get.type(card)=='trick'&&get.tag(card,'damage')){
 								return 'zeroplayertarget';
 							}
@@ -4187,6 +4278,7 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 						if(!lib.inpile.contains(card.name)) return false;
 						if(lib.card[card.name].nopower) return false;
 						if(lib.card[card.name].unique) return false;
+						if(card.nopower) return false;
 					}
 					if(ui.selected.cards.length){
 						var type2=get.type(ui.selected.cards[0]);
@@ -4209,7 +4301,8 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 					for(var i=0;i<es.length;i++){
 						if(lib.inpile.contains(es[i].name)&&
 							!lib.card[es[i].name].nopower&&
-							!lib.card[es[i].name].unique){
+							!lib.card[es[i].name].unique&&
+							!es[i].nopower){
 							return true;
 						}
 					}
@@ -4225,7 +4318,7 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 					var card=game.createCard(name);
 					player.chooseTarget(function(card,player,target){
 						return !target.isMin()&&get.distance(player,target)<=1;
-					},'选择一个目标装备'+get.translation(card.name)).ai=function(target){
+					},'选择一个目标装备'+get.translation(card.name),true).ai=function(target){
 						return get.effect(target,card,player,player);
 					}
 					event.card=card;
@@ -4233,7 +4326,7 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 					if(result.bool){
 						var target=result.targets[0];
 						player.line(target,'green');
-						target.equip(event.card);
+						target.equip(event.card)._triggered=null;
 						target.$gain2(event.card);
 						game.delay();
 					}
@@ -4338,6 +4431,15 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 				},
 				content:function(){
 					trigger.num++;
+				},
+				ai:{
+					effect:{
+						target:function(card,player,target){
+							if(card.name=='sha'){
+								return [1,-2];
+							}
+						}
+					}
 				}
 			},
 			baihupifeng:{
@@ -4626,7 +4728,11 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 				trigger:{player:'damageBegin'},
 				forced:true,
 				filter:function(event,player){
-					if(event.source&&event.source.hasSkillTag('unequip',false,event.card)) return false;
+					if(event.source&&event.source.hasSkillTag('unequip',false,{
+						name:event.card?event.card.name:null,
+						target:player,
+						card:event.card
+					})) return false;
 					if(Math.random()>1/3) return false;
 					return true;
 				},
@@ -4806,12 +4912,20 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 			jiguan:0.45
 		},
 		help:{
-			'轩辕剑':'<ul><li>零件、祭器牌可用于煅造装备，煅造得到强化装备，并可装备给距离1以内的角色<li>'+
-			'煅造装备时失去牌不触发技能<li>'+
+			'轩辕剑':'<ul><li>零件、祭器牌可用于煅造装备，煅造得到强化装备，并装备给距离1以内的角色<li>'+
+			'煅造装备时失去牌以及装备牌的过程不触发任何技能（如枭姬、祈禳） <li>'+
 			'进行洗牌时强化装备将从弃牌堆中消失，不进入牌堆<li>'+
 			'专属、特殊装备无法被强化'
 		},
 		translate:{
+			qiankundai:'乾坤袋',
+			qiankundai_info:'你的手牌上限+1。当你失去该装备时，你摸一张牌。',
+			hufu:'玉符',
+			hufu_bg:'符',
+			g_hufu_sha:'符杀',
+			g_hufu_shan:'符闪',
+			g_hufu_jiu:'符酒',
+			hufu_info:'你可以将一张玉符当作杀、闪或酒使用或打出',
 			// yihuajiemu:'移花接木',
 			// yihuajiemu_info:'对一名装备区内有宝物的角色使用，将其宝物牌转移至另一名角色',
 			liuxinghuoyu:'流星火羽',
@@ -5022,13 +5136,13 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 			hslingjian_shijianhuisu_equip4_info:'当你的装备区内没有其他牌时，你的进攻距离+1',
 			hslingjian_shijianhuisu_equip5_info:'出牌阶段限一次，你可以弃置一张牌，然后令一名其他角色将其装备区内的牌收回手牌',
 			_lingjianduanzao:'煅造',
-			_lingjianduanzao_info:'出牌阶段，你可以将一张装备牌和一张可煅造的牌合成为一件强化装备，并可装备给距离1以内的一名角色',
+			_lingjianduanzao_info:'出牌阶段，你可以将一张装备牌和一张可煅造的牌合成为一件强化装备，并装备给距离1以内的一名角色',
 			jiguanshu:'机关鼠',
 			jiguanshu_info:'出牌阶段对自己使用，用随机祭器强化装备区内的一张随机装备，然后用随机零件强化其余的装备',
 			lingjiandai:'零件袋',
 			lingjiandai_info:'出牌阶段对自己使用，获得3张随机零件',
 			mujiaren:'木甲人',
-			mujiaren_info:'出牌阶段限用一次，获得一张随机机关牌，并将你手牌中的非基本牌替换为随机的机关牌',
+			mujiaren_info:'出牌阶段限用一次，将你手牌中的非基本牌（含此张）替换为随机的机关牌',
 			jiguanyaoshu:'机关要术',
 			jiguanyaoshu_skill:'巧匠',
 			jiguanyaoshu_skill_info:'每当你于回合外失去装备区内的牌，你获得一个随机零件',
@@ -5128,6 +5242,7 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 			touzhi:'投掷',
 			touzhi_info:'出牌阶段，可弃置一张武器牌令一名角色受到一点伤害，然后该角色获得此武器牌',
 			xixueguizhihuan:'吸血鬼指环',
+			xixueguizhihuan_ab:'血环',
 			xixueguizhihuan_info:'锁定技，每当你使用杀造成一点伤害，你回复一点体力',
 			xixue:'吸血',
 			xixue_info:'锁定技，每当你使用杀造成一点伤害，你回复一点体力',
@@ -5185,6 +5300,9 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 			lianyaohu_info:'出牌阶段各限一次，你可以选择一项：1.弃置一张手牌，并将一名其他角色的一张手牌置入炼妖壶；2.弃置两张炼妖壶中的牌，从牌堆中获得一张与弃置的牌类别均不相同的牌',
 		},
 		list:[
+			['heart',1,'hufu'],
+			['spade',1,'hufu'],
+			['club',1,'qiankundai'],
 			// ['heart',3,'yihuajiemu'],
 			// ['diamond',1,'yihuajiemu'],
 			// ['diamond',7,'yihuajiemu'],

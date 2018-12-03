@@ -96,6 +96,17 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 					useful:3,
 					result:{
 						target:function(player,target){
+							if(get.attitude(player,target)>0){
+								var js=target.getCards('j');
+								if(js.length){
+									var jj=js[0].viewAs?{name:js[0].viewAs}:js[0];
+									if(jj.name=='zhaomingdan') return 3;
+									if(js.length==1&&get.effect(target,jj,target,player)>=0){
+										return 0;
+									}
+									return 3;
+								}
+							}
 							var es=target.getCards('e');
 							var nh=target.countCards('h');
 							var noe=(es.length==0||target.hasSkillTag('noe'));
@@ -104,15 +115,6 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 							if(noh&&noe) return 0;
 							if(noh&&noe2) return 0.01;
 							if(get.attitude(player,target)<=0) return (target.countCards('he'))?-1.5:1.5;
-							var js=target.getCards('j');
-							if(js.length){
-								var jj=js[0].viewAs?{name:js[0].viewAs}:js[0];
-								if(jj.name=='zhaomingdan') return 3;
-								if(js.length==1&&get.effect(target,jj,target,player)>=0){
-									return 0;
-								}
-								return 3;
-							}
 							return 0.1;
 						}
 					}
@@ -128,9 +130,21 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 				content:function(){
 					'step 0'
 					var cards=[];
+					var subtype=null;
 					for(var i=0;i<2;i++){
 						var card=get.cardPile(function(card){
-							return get.type(card)=='equip';
+							if(get.type(card)=='equip'){
+								if(subtype){
+									if(get.subtype(card)==subtype){
+										return false;
+									}
+								}
+								else{
+									subtype=get.subtype(card);
+								}
+								return true;
+							}
+							return false;
 						});
 						if(card){
 							ui.special.appendChild(card);
@@ -352,8 +366,8 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 					target.changeHujia();
 					target.draw();
 					'step 1'
-					if(player.countCards('he')){
-						player.chooseToDiscard('he',true);
+					if(target.countCards('he')){
+						target.chooseToDiscard('he',true);
 					}
 				},
 				ai:{
@@ -397,9 +411,9 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 						}
 					}
 					else{
-						if(cards[0]){
-							cards[0].discard();
-						}
+						// if(cards[0]){
+						// 	cards[0].discard();
+						// }
 						event.finish();
 					}
 					'step 1'
@@ -410,6 +424,7 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 						else{
 							target.addTempSkill('chuansongmen2');
 						}
+						cards[0].fix();
 						target.gain(cards,'gain2');
 					}
 					else{
@@ -552,7 +567,7 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 						}
 					}
 				}
-	        },
+			},
 			zhiliaobo:{
 				fullskin:true,
 				enable:true,
@@ -677,7 +692,7 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 			linghunzhihuo:'灵魂之火',
 			linghunzhihuo_info:'对一名角色造成一点火焰伤害，然后随机弃置一张手牌',
 			shenenshu:'神恩术',
-			shenenshu_info:'出牌阶段对自己使用，获得一张随机基本牌，并将所有手牌替换为基本牌',
+			shenenshu_info:'出牌阶段对自己使用，将所有手牌（含此张）替换为基本牌',
 			zhiliaobo:'治疗波',
 			zhiliaobo_info:'出牌阶段对一名受伤角色使用，目标进行一次判定，若结果为红色，则回复一点体力，否则获得一点护甲',
 			yuansuhuimie:'元素毁灭',
@@ -697,7 +712,7 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 			shandianjian:'闪电箭',
 			shandianjian_info:'目标角色展示一张手牌，然后若你能弃掉一张与所展示牌相同花色的手牌，则对该角色造成1点雷电伤害。',
 			shijieshu:'视界术',
-			shijieshu_info:'目标从牌堆或弃牌堆中随机装备两张装备牌，然后弃置一张牌',
+			shijieshu_info:'目标从牌堆或弃牌堆中随机装备两张类别不同的装备牌，然后弃置一张牌',
 			zhaomingdan:'照明弹',
 			zhaomingdan_info:'观看一名其他角色的手牌，并弃置其区域内的一张牌，然后其与你各摸一张牌',
 			jihuocard:'激活',

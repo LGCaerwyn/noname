@@ -368,8 +368,8 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 							}
 						}
 						var num=player.countCards('h','sha');
-						if(num>1) return 4+num;
-						return 2+num;
+						if(num>1) return 6+num;
+						return 3+num;
 					},
 					basic:{
 						equipValue:5
@@ -417,7 +417,7 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 						equipValue:3.5
 					}
 				},
-				skills:['qinglong_skill']
+				skills:['qinglong_skill','qinglong_guozhan']
 			},
 			zhangba:{
 				fullskin:true,
@@ -461,7 +461,7 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 						equipValue:2.5
 					}
 				},
-				skills:['fangtian_skill']
+				skills:['fangtian_skill','fangtian_guozhan']
 			},
 			qilin:{
 				fullskin:true,
@@ -953,10 +953,10 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 				},
 				filterTarget:function(card,player,target){
 					if(player==target) return false;
-					return (target.countCards('hej')>0);
+					return target.countGainableCards(player,'hej')>0;
 				},
 				content:function(){
-					if(target.countCards('hej')){
+					if(target.countGainableCards(player,'hej')){
 						player.gainPlayerCard('hej',target,true);
 					}
 				},
@@ -1021,10 +1021,10 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 				},
 				filterTarget:function(card,player,target){
 					if(player==target) return false;
-					return (target.countCards('hej')>0);
+					return target.countDiscardableCards(player,'hej');
 				},
 				content:function(){
-					if(target.countCards('hej')){
+					if(target.countDiscardableCards(player,'hej')){
 						player.discardPlayerCard('hej',target,true);
 					}
 				},
@@ -1043,7 +1043,7 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 								if(js.length){
 									var jj=js[0].viewAs?{name:js[0].viewAs}:js[0];
 									if(jj.name=='guohe'||js.length>1||get.effect(target,jj,target,player)<0){
-										return 2;
+										return 3;
 									}
 								}
 								if(target.getEquip('baiyin')&&target.isDamaged()&&
@@ -1127,8 +1127,6 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 						gain:1,
 						use:1,
 						useSha:1,
-						multitarget:1,
-						multineg:1,
 						loseCard:1,
 					}
 				}
@@ -1317,6 +1315,43 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 			},
 		},
 		skill:{
+			qinglong_guozhan:{
+				trigger:{player:'useCard'},
+				forced:true,
+				filter:function(){
+					return get.mode()=='guozhan';
+				},
+				content:function(){
+					var players=game.filterPlayer();
+					for(var i=0;i<players.length;i++){
+						game.players[i].addTempSkill('qinglong_guozhan_mingzhi');
+						game.players[i].storage.qinglong_guozhan_mingzhi.add(trigger.card);
+					}
+				}
+			},
+			qinglong_guozhan_mingzhi:{
+				vanish:true,
+				silent:true,
+				onremove:true,
+				trigger:{global:'useCardAfter'},
+				filter:function(event,player){
+					return player.storage.qinglong_guozhan_mingzhi.contains(event.card);
+				},
+				init:function(player){
+					if(!player.storage.qinglong_guozhan_mingzhi){
+						player.storage.qinglong_guozhan_mingzhi=[];
+					}
+				},
+				content:function(){
+					player.storage.qinglong_guozhan_mingzhi.remove(trigger.card);
+					if(!player.storage.qinglong_guozhan_mingzhi.length){
+						player.removeSkill('qinglong_guozhan_mingzhi');
+					}
+				},
+				ai:{
+					nomingzhi:true
+				}
+			},
 			hanbing_skill:{
 				trigger:{player:'shaHit'},
 				direct:true,
@@ -1357,8 +1392,12 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 				forced:true,
 				priority:6,
 				audio:true,
-				filter:function(event){
-					if(event.player.hasSkillTag('unequip',false,event.card)) return false;
+				filter:function(event,player){
+					if(event.player.hasSkillTag('unequip',false,{
+						name:event.card?event.card.name:null,
+						target:player,
+						card:event.card
+					})) return false;
 					return (event.card.name=='sha'&&get.color(event.card)=='black')
 				},
 				content:function(){
@@ -1367,7 +1406,11 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 				ai:{
 					effect:{
 						target:function(card,player){
-							if(player.hasSkillTag('unequip',false,card)) return;
+							if(player.hasSkillTag('unequip',false,{
+								name:card?card.name:null,
+								target:player,
+								card:card
+							})) return;
 							if(card.name=='sha'&&get.color(card)=='black') return 'zerotarget';
 						}
 					}
@@ -1418,6 +1461,7 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 				trigger:{player:'shaMiss'},
 				direct:true,
 				filter:function(event,player){
+					if(get.mode()=='guozhan') return false;
 					return player.canUse('sha',event.target)&&player.hasSha();
 				},
 				content:function(){
@@ -1495,6 +1539,7 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 				mod:{
 					selectTarget:function(card,player,range){
 						if(card.name!='sha') return;
+						if(get.mode()=='guozhan') return;
 						if(range[1]==-1) return;
 						var cards=player.getCards('h');
 						for(var i=0;i<cards.length;i++){
@@ -1503,6 +1548,54 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 						}
 						range[1]+=2;
 					}
+				}
+			},
+			fangtian_guozhan:{
+				trigger:{player:'useCard'},
+				silent:true,
+				filter:function(event,player){
+					if(get.mode()!='guozhan') return false;
+					return event.card.name=='sha'&&event.targets&&event.targets.length>1;
+				},
+				content:function(){
+					player.addTempSkill('fangtian_guozhan_trigger');
+				},
+				mod:{
+					selectTarget:function(card,player,range){
+						if(card.name!='sha') return;
+						if(get.mode()!='guozhan') return;
+						if(range[1]==-1) return;
+						range[1]=Infinity;
+					},
+					playerEnabled:function(card,player,target){
+						if(card.name!='sha') return;
+						if(get.mode()!='guozhan') return;
+						if(!ui.selected.targets.length) return;
+						if(target.identity=='ye'||target.identity=='unknown') return;
+						for(var i=0;i<ui.selected.targets.length;i++){
+							if(target!=ui.selected.targets[i]&&target.identity==ui.selected.targets[i].identity){
+								return false;
+							}
+						}
+					}
+				}
+			},
+			fangtian_guozhan_trigger:{
+				trigger:{player:'shaMiss'},
+				silent:true,
+				onremove:true,
+				content:function(){
+					trigger.getParent().excluded.addArray(trigger.getParent().targets);
+				}
+			},
+			fangtian_guozhan_remove:{
+				trigger:{player:'useCardAfter'},
+				silent:true,
+				filter:function(event,player){
+					return player.storage.fangtian_guozhan_trigger&&player.storage.fangtian_guozhan_trigger.contains(event.card);
+				},
+				content:function(){
+					player.storage.fangtian_guozhan_trigger.remove(trigger.card);
 				}
 			},
 			qilin_skill:{
@@ -1536,7 +1629,11 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 					if(!event.filterCard({name:'shan'})) return false;
 					if(!lib.filter.cardRespondable({name:'sha'},player,event)) return false;
 					var evt=event.getParent();
-					if(evt.player&&evt.player.hasSkillTag('unequip',false,evt.card)) return false;
+					if(evt.player&&evt.player.hasSkillTag('unequip',false,{
+						name:evt.card?evt.card.name:null,
+						target:player,
+						card:evt.card
+					})) return false;
 					return true;
 				},
 				audio:true,
@@ -1557,7 +1654,11 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 				ai:{
 					effect:{
 						target:function(card,player,target,effect){
-							if(player.hasSkillTag('unequip',false,card)) return;
+							if(player.hasSkillTag('unequip',false,{
+								name:card?card.name:null,
+								target:player,
+								card:card
+							})) return;
 							if(get.tag(card,'respondShan')) return 0.5;
 						}
 					}
@@ -1705,6 +1806,25 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 							next.nouse=true;
 						}
 					};
+					event.settle=function(){
+						if(!event.state){
+							if(event.triggername=='phaseJudge'){
+								trigger.untrigger();
+								trigger.cancelled=true;
+							}
+							else{
+								trigger.cancel();
+								if(get.mode()=='guozhan'&&get.itemtype(event.statecard)=='card'&&event.statecard.hasTag('guo')){
+									if(trigger.target.identity!='ye'&&trigger.target.identity!='unknown'){
+										trigger.getParent().excluded.addArray(game.filterPlayer(function(current){
+											return current.identity==trigger.target.identity;
+										}));
+									}
+								}
+							}
+						}
+						event.finish();
+					};
 					'step 1'
 					var list=game.filterPlayer(function(current){
 						if(event.triggername=='phaseJudge'){
@@ -1724,16 +1844,7 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 					});
 					'step 2'
 					if(event.list.length==0){
-						event.finish();
-						if(!event.state){
-							if(event.triggername=='phaseJudge'){
-								trigger.untrigger();
-								trigger.cancelled=true;
-							}
-							else{
-								trigger.cancel();
-							}
-						}
+						event.settle();
 					}
 					else if(_status.connectMode&&(event.list[0].isOnline()||event.list[0]==game.me)){
 						event.goto(4);
@@ -1829,6 +1940,14 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 					'step 9'
 					if(event.wuxieresult){
 						if(result=='wuxied'){
+							if(!event.statecard){
+								if(event.wuxieresult2&&event.wuxieresult2.used){
+									event.statecard=event.wuxieresult2.used;
+								}
+								else{
+									event.statecard=true;
+								}
+							}
 							event.state=!event.state;
 						}
 						event.goto(1);
@@ -1837,15 +1956,7 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 						event.goto(2);
 					}
 					else{
-						if(!event.state){
-							if(event.triggername=='phaseJudge'){
-								trigger.untrigger();
-								trigger.cancelled=true;
-							}
-							else{
-								trigger.cancel();
-							}
-						}
+						event.settle();
 					}
 					delete event.resultOL;
 					delete event.wuxieresult;
@@ -1944,13 +2055,16 @@ game.import('card',function(lib,game,ui,get,ai,_status){
 			qinggang_skill_info:'每当你使用【杀】指定一名目标角色后，你无视其防具。',
 			qinggang_info:'每当你使用【杀】指定一名目标角色后，你无视其防具。',
 			qinglong_skill_info:'每当你使用的【杀】被目标角色使用的【闪】抵消时，你可以对其使用一张【杀】（无距离限制）。',
+			qinglong_guozhan_info:'锁定技，当你使用【杀】指定目标时，所有目标角色不能明置武将牌直到此【杀】结算完毕为止。',
 			qinglong_info:'每当你使用的【杀】被目标角色使用的【闪】抵消时，你可以对其使用一张【杀】（无距离限制）。',
+			qinglong_info_guozhan:'锁定技，当你使用【杀】指定目标时，所有目标角色不能明置武将牌直到此【杀】结算完毕为止。',
 			zhangba_skill_info:'你可以将两张手牌当【杀】使用或打出。',
 			zhangba_info:'你可以将两张手牌当【杀】使用或打出。',
 			guanshi_skill_info:'每当你使用的【杀】被目标角色使用的【闪】抵消时，你可以弃置两张牌，令此【杀】依然对其造成伤害。',
 			guanshi_info:'每当你使用的【杀】被目标角色使用的【闪】抵消时，你可以弃置两张牌，令此【杀】依然对其造成伤害。',
 			fangtian_skill_info:'你使用的【杀】若是你最后的手牌，你可以额外选择至多两个目标。',
 			fangtian_info:'你使用的【杀】若是你最后的手牌，你可以额外选择至多两个目标。',
+			fangtian_info_guozhan:'你使用【杀】可以指定任意名角色为目标（不能包含势力相同的角色），若任意一名目标角色使用【闪】抵消了此【杀】，则此【杀】对剩余的目标角色无效。',
 			qilin_skill_info:'每当你使用【杀】对目标角色造成伤害时，你可以弃置其装备区里的一张坐骑牌。',
 			qilin_info:'每当你使用【杀】对目标角色造成伤害时，你可以弃置其装备区里的一张坐骑牌。',
 			wugu_info:'出牌阶段，对所有角色使用。（选择目标后）你从牌堆顶亮出等同于目标数量的牌，每名目标角色获得这些牌中（剩余的）的任意一张。',
