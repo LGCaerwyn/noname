@@ -188,6 +188,7 @@
 #arena:not(.chess) .player[data-position='0']>.equips>.equip2{top: 10px;right: 10px;}
 #arena:not(.chess) .player[data-position='0']>.equips>.equip3{bottom: 10px;left: 10px;}
 #arena:not(.chess) .player[data-position='0']>.equips>.equip4{bottom: 10px;right: 10px;}
+#arena:not(.chess) .player[data-position='0']>.equips>.equip6{bottom: 10px;right: 10px;}
 
 #arena:not(.chess) .player[data-position='0']>.name,
 #arena:not(.chess) .player[data-position='0'].linked>.name{
@@ -292,6 +293,7 @@
     top:0;
     left:0;
     background-size:cover;
+    clip-path: polygon(-10px 0, 130px 0, 130px 150px, -10px 150px);
     -webkit-clip-path: polygon(-10px 0, 130px 0, 130px 150px, -10px 150px);
 }
 #window[data-radius_size='increase'] #me>.fakeme.avatar,
@@ -304,7 +306,8 @@
     top:20px;
 }
 #arena.mobile.oblongcard:not(.chess):not(.textequip) .player[data-position='0']>.equips>.equip3,
-#arena.mobile.oblongcard:not(.chess):not(.textequip) .player[data-position='0']>.equips>.equip4{
+#arena.mobile.oblongcard:not(.chess):not(.textequip) .player[data-position='0']>.equips>.equip4,
+#arena.mobile.oblongcard:not(.chess):not(.textequip) .player[data-position='0']>.equips>.equip6{
     bottom:20px;
 }
 

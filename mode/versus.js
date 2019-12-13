@@ -23,7 +23,7 @@ game.import('mode',function(lib,game,ui,get,ai,_status){
 					lib.character[i]=lib.characterPack.mode_versus[i];
 				}
 				delete lib.character.sp_liuqi;
-				delete lib.character.sp_tangzi;
+				delete lib.character.xf_tangzi;
 				lib.cardPack.mode_versus=['zong','xionghuangjiu','tongzhougongji','lizhengshangyou'];
 				lib.translate.mode_versus_character_config='四国武将';
 			}
@@ -98,11 +98,20 @@ game.import('mode',function(lib,game,ui,get,ai,_status){
 				game.prepareArena(2);
 			}
 			else if(_status.mode=='three'){
+				if(lib.character.wenpin) lib.character.wenpin[3]=['zhenwei_three'];
+				if(lib.character.zhugejin) lib.character.zhugejin[3]=['hongyuan','huanshi_three','mingzhe'];
 				if(!get.config('enable_all_cards')){
 					lib.translate.wuzhong_info+='若对方存活角色多于己方，则额外摸一张牌';
 					lib.translate.zhuge_info='锁定技，出牌阶段，你使用杀的次数上限+3';
 					lib.card.list=lib.cardsThree;
 					game.fixedPile=true;
+				}
+				else if(Array.isArray(lib.config.forbidthreecard)){
+					for(var i=0;i<lib.card.list.length;i++){
+						if(lib.config.forbidthreecard.contains(lib.card.list[i][2])){
+							lib.card.list.splice(i--,1);
+						}
+					}
 				}
 				ui.create.cardsAsync();
 				game.finishCards();
@@ -507,9 +516,9 @@ game.import('mode',function(lib,game,ui,get,ai,_status){
 				else if(lib.configOL.versus_mode=='2v2'||lib.configOL.versus_mode=='3v3'){
 					uiintro.add('<div class="text chat">四号位换牌：'+(lib.configOL.replace_handcard?'开启':'关闭'));
 				}
-				uiintro.add('<div class="text chat">出牌时限：'+lib.configOL.choose_timeout+'秒');
-				uiintro.add('<div class="text chat">屏蔽弱将：'+(lib.configOL.ban_weak?'开启':'关闭'));
-				var last=uiintro.add('<div class="text chat">屏蔽强将：'+(lib.configOL.ban_strong?'开启':'关闭'));
+				var last=uiintro.add('<div class="text chat">出牌时限：'+lib.configOL.choose_timeout+'秒');
+				// uiintro.add('<div class="text chat">屏蔽弱将：'+(lib.configOL.ban_weak?'开启':'关闭'));
+				// var last=uiintro.add('<div class="text chat">屏蔽强将：'+(lib.configOL.ban_strong?'开启':'关闭'));
 				if(lib.configOL.banned.length){
 					last=uiintro.add('<div class="text chat">禁用武将：'+get.translation(lib.configOL.banned));
 				}
@@ -519,6 +528,13 @@ game.import('mode',function(lib,game,ui,get,ai,_status){
 				last.style.paddingBottom='8px';
 			},
 			getVideoName:function(){
+				if(_status.mode=='three'){
+					var zhu=game.findPlayer(function(current){
+						return current.side==game.me.side&&current.identity=='zhu';
+					});
+					var str=(game.me.side?'暖/':'冷/')+get.translation(zhu.previousSeat.name)+'/'+get.translation(zhu.name)+'/'+get.translation(zhu.nextSeat.name);
+					return ['统率三军',str]
+				}
 				var str=get.translation(game.me.name);
 				if(game.me.name2){
 					str+='/'+get.translation(game.me.name2);
@@ -1733,6 +1749,9 @@ game.import('mode',function(lib,game,ui,get,ai,_status){
 					event.current.classList.remove('selectedx');
 					if(event.current.side==game.me.side){
 						event.current.init(result.buttons[0].link);
+						if(event.current==game.me){
+							game.addRecentCharacter(result.buttons[0].link);
+						}
 						event.list.remove(event.current.name);
 						event.list2.remove(event.current.name);
 						if(event.current.identity=='zhu'){
@@ -1788,7 +1807,7 @@ game.import('mode',function(lib,game,ui,get,ai,_status){
 					if(event.xdialog){
 						event.xdialog.close();
 					}
-					game.addRecentCharacter(game.me.name,game.me.name2);
+					// game.addRecentCharacter(game.me.name,game.me.name2);
 					ui.control.style.transitionDuration='0s';
 					ui.refresh(ui.control);
 					ui.arena.classList.remove('choose-character');
@@ -1994,7 +2013,7 @@ game.import('mode',function(lib,game,ui,get,ai,_status){
 					_status.color=Math.random()<0.5;
 					var i,list=[];
 					for(i in lib.character){
-						if(lib.config.forbidversus.contains(i)) continue;
+						// if(lib.config.forbidversus.contains(i)) continue;
 						if(lib.filter.characterDisabled(i)) continue;
 						list.push(i);
 					}
@@ -3165,17 +3184,17 @@ game.import('mode',function(lib,game,ui,get,ai,_status){
 				});
 			},
 			replacePlayerOL:function(player){
-				var next=game.createEvent('replacePlayer');
+				var next=game.createEvent('replacePlayer',false,_status.event.getParent());
 				next.source=player;
 				next.setContent('replacePlayerOL');
 			},
 			replacePlayer:function(player){
-				var next=game.createEvent('replacePlayer');
+				var next=game.createEvent('replacePlayer',false,_status.event.getParent());
 				next.source=player;
 				next.setContent('replacePlayer');
 			},
 			replacePlayerTwo:function(player,character){
-				var next=game.createEvent('replacePlayerTwo');
+				var next=game.createEvent('replacePlayerTwo',false,_status.event.getParent());
 				next.source=player;
 				next.character=character;
 				next.setContent('replacePlayerTwo');
@@ -3768,18 +3787,15 @@ game.import('mode',function(lib,game,ui,get,ai,_status){
 			["club",4,"bingliang"],
 		],
 		choiceThree:[
-			'sunquan','re_ganning','re_huanggai','re_zhouyu','re_daqiao','re_luxun','sunshangxiang',
-			're_liubei','re_zhangfei','zhugeliang','re_zhaoyun','re_machao','huangyueying',
-			're_caocao','re_simayi','re_zhangliao','re_xuzhu','re_guojia','zhenji','re_lidian',
-			're_gongsunzan','diaochan','re_huatuo',
-			'xiaoqiao',
-			'dianwei',
-			'xuhuang','sunjian',
-			'dengai','jiangwei','sunce',
-			'xin_masu','lingtong','xusheng','chengong',
-			'xunyou','wangyi',
-			'guyong','caifuren',
-			'zhugejin','dingfeng',
+			'zhenji','zhugeliang','sunquan','diaochan',
+			're_ganning','re_daqiao','re_zhangfei','re_machao','re_simayi','re_zhangliao','re_xuzhu','re_guojia','re_lidian',
+			'jiangwei','sunce',
+			'madai','lingtong','yufan',
+			'wangji','yanyan','wangping',
+			'guyong','jushou','caifuren','zhoucang','liuchen','liyan',
+			'caiyong','xuezong',
+			'zhugejin','simalang','sp_sunshangxiang','luzhi','sp_liuqi','quyi',
+			'mazhong','mayunlu','litong','wenpin'
 		],
 		choiceFour:[
 			'sunquan','re_ganning','re_lvmeng','re_zhouyu','re_daqiao','re_luxun','sunshangxiang',
@@ -4230,14 +4246,14 @@ game.import('mode',function(lib,game,ui,get,ai,_status){
 				unique:true,
 				content:function(){
 					"step 0"
-					event.players=get.players(player);
+					event.players=game.filterPlayer(function(current){
+					    return current.isEnemyOf(player);
+					});
 					"step 1"
 					if(event.players.length){
 						var current=event.players.shift();
-						if(current.isEnemyOf(player)){
-							player.line(current,'fire');
-							current.damage('fire');
-						}
+						player.line(current,'fire');
+						current.damage('fire');
 						event.redo();
 					}
 				},
@@ -4733,7 +4749,7 @@ game.import('mode',function(lib,game,ui,get,ai,_status){
 					'step 1'
 					if(event.targets.length){
 						var current=event.targets.shift();
-						current.damage('thunder');
+						current.damage();
 						player.line(current,'thunder');
 						event.redo();
 					}
@@ -4811,7 +4827,7 @@ game.import('mode',function(lib,game,ui,get,ai,_status){
 					event.cards=get.cards(3);
 					event.cards2=[];
 					for(var i=0;i<event.cards.length;i++){
-						var type=get.type(event.cards[i]);
+						var type=get.type(event.cards[i],'trick');
 						if(type=='trick'||type=='equip'){
 							event.cards2.push(event.cards[i]);
 						}
@@ -5458,6 +5474,12 @@ game.import('mode',function(lib,game,ui,get,ai,_status){
 			content:{
 				replacePlayer:function(){
 					"step 0"
+					var cards=source.getCards('hej');
+					if(cards.length){
+						source.$throw(cards,1000);
+						game.cardsDiscard(cards);
+					}
+					"step 1"
 					var list=(source.side==game.me.side)?_status.friend:_status.enemy;
 					if(list.length==0){
 						// if(game.friend.contains(source)){
@@ -5500,7 +5522,7 @@ game.import('mode',function(lib,game,ui,get,ai,_status){
 					else{
 						event.character=list[Math.floor(Math.random()*list.length)];
 					}
-					"step 1"
+					"step 2"
 					game.uncheck();
 					_status.friend.remove(event.character);
 					_status.enemy.remove(event.character);
@@ -5530,13 +5552,18 @@ game.import('mode',function(lib,game,ui,get,ai,_status){
 						game.onSwapControl();
 					}
 					game.triggerEnter(source);
-					"step 2"
+					"step 3"
 					// if(_status.currentPhase==source){
 					// 	source.skip('phase');
 					// }
 				},
 				replacePlayerTwo:function(){
 					'step 0'
+					var cards=source.getCards('hej');
+					if(cards.length){
+						source.$throw(cards,1000);
+						game.cardsDiscard(cards);
+					}
 					game.delay();
 					'step 1'
 					source.revive(null,false);
@@ -5565,6 +5592,11 @@ game.import('mode',function(lib,game,ui,get,ai,_status){
 				},
 				replacePlayerOL:function(){
 					'step 0'
+					var cards=source.getCards('hej');
+					if(cards.length){
+						source.$throw(cards,1000);
+						game.cardsDiscard(cards);
+					}
 					game.delay();
 					'step 1'
 					if(event.source.side==game.me.side){
